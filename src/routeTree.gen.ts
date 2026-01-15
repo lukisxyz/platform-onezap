@@ -14,10 +14,14 @@ import { Route as DashboardRouteImport } from './routes/dashboard'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as ProfileEditRouteImport } from './routes/profile.edit'
 import { Route as ContentCreateRouteImport } from './routes/content.create'
+import { Route as PUsernameIndexRouteImport } from './routes/p.$username.index'
 import { Route as ApiContentIndexRouteImport } from './routes/api.content.index'
+import { Route as PUsernameContentIdRouteImport } from './routes/p.$username.$contentId'
 import { Route as ContentIdEditRouteImport } from './routes/content.$id.edit'
 import { Route as ApiUserProfileRouteImport } from './routes/api.user.profile'
+import { Route as ApiUserUsernameRouteImport } from './routes/api.user.$username'
 import { Route as ApiContentIdRouteImport } from './routes/api.content.$id'
+import { Route as ApiContentContentIdRouteImport } from './routes/api.content.$contentId'
 import { Route as ApiAuthSplatRouteImport } from './routes/api.auth.$'
 
 const SignInRoute = SignInRouteImport.update({
@@ -45,9 +49,19 @@ const ContentCreateRoute = ContentCreateRouteImport.update({
   path: '/content/create',
   getParentRoute: () => rootRouteImport,
 } as any)
+const PUsernameIndexRoute = PUsernameIndexRouteImport.update({
+  id: '/p/$username/',
+  path: '/p/$username/',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiContentIndexRoute = ApiContentIndexRouteImport.update({
   id: '/api/content/',
   path: '/api/content/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PUsernameContentIdRoute = PUsernameContentIdRouteImport.update({
+  id: '/p/$username/$contentId',
+  path: '/p/$username/$contentId',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ContentIdEditRoute = ContentIdEditRouteImport.update({
@@ -60,9 +74,19 @@ const ApiUserProfileRoute = ApiUserProfileRouteImport.update({
   path: '/api/user/profile',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiUserUsernameRoute = ApiUserUsernameRouteImport.update({
+  id: '/api/user/$username',
+  path: '/api/user/$username',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiContentIdRoute = ApiContentIdRouteImport.update({
   id: '/api/content/$id',
   path: '/api/content/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiContentContentIdRoute = ApiContentContentIdRouteImport.update({
+  id: '/api/content/$contentId',
+  path: '/api/content/$contentId',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiAuthSplatRoute = ApiAuthSplatRouteImport.update({
@@ -78,10 +102,14 @@ export interface FileRoutesByFullPath {
   '/content/create': typeof ContentCreateRoute
   '/profile/edit': typeof ProfileEditRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
+  '/api/content/$contentId': typeof ApiContentContentIdRoute
   '/api/content/$id': typeof ApiContentIdRoute
+  '/api/user/$username': typeof ApiUserUsernameRoute
   '/api/user/profile': typeof ApiUserProfileRoute
   '/content/$id/edit': typeof ContentIdEditRoute
+  '/p/$username/$contentId': typeof PUsernameContentIdRoute
   '/api/content': typeof ApiContentIndexRoute
+  '/p/$username': typeof PUsernameIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -90,10 +118,14 @@ export interface FileRoutesByTo {
   '/content/create': typeof ContentCreateRoute
   '/profile/edit': typeof ProfileEditRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
+  '/api/content/$contentId': typeof ApiContentContentIdRoute
   '/api/content/$id': typeof ApiContentIdRoute
+  '/api/user/$username': typeof ApiUserUsernameRoute
   '/api/user/profile': typeof ApiUserProfileRoute
   '/content/$id/edit': typeof ContentIdEditRoute
+  '/p/$username/$contentId': typeof PUsernameContentIdRoute
   '/api/content': typeof ApiContentIndexRoute
+  '/p/$username': typeof PUsernameIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -103,10 +135,14 @@ export interface FileRoutesById {
   '/content/create': typeof ContentCreateRoute
   '/profile/edit': typeof ProfileEditRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
+  '/api/content/$contentId': typeof ApiContentContentIdRoute
   '/api/content/$id': typeof ApiContentIdRoute
+  '/api/user/$username': typeof ApiUserUsernameRoute
   '/api/user/profile': typeof ApiUserProfileRoute
   '/content/$id/edit': typeof ContentIdEditRoute
+  '/p/$username/$contentId': typeof PUsernameContentIdRoute
   '/api/content/': typeof ApiContentIndexRoute
+  '/p/$username/': typeof PUsernameIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -117,10 +153,14 @@ export interface FileRouteTypes {
     | '/content/create'
     | '/profile/edit'
     | '/api/auth/$'
+    | '/api/content/$contentId'
     | '/api/content/$id'
+    | '/api/user/$username'
     | '/api/user/profile'
     | '/content/$id/edit'
+    | '/p/$username/$contentId'
     | '/api/content'
+    | '/p/$username'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -129,10 +169,14 @@ export interface FileRouteTypes {
     | '/content/create'
     | '/profile/edit'
     | '/api/auth/$'
+    | '/api/content/$contentId'
     | '/api/content/$id'
+    | '/api/user/$username'
     | '/api/user/profile'
     | '/content/$id/edit'
+    | '/p/$username/$contentId'
     | '/api/content'
+    | '/p/$username'
   id:
     | '__root__'
     | '/'
@@ -141,10 +185,14 @@ export interface FileRouteTypes {
     | '/content/create'
     | '/profile/edit'
     | '/api/auth/$'
+    | '/api/content/$contentId'
     | '/api/content/$id'
+    | '/api/user/$username'
     | '/api/user/profile'
     | '/content/$id/edit'
+    | '/p/$username/$contentId'
     | '/api/content/'
+    | '/p/$username/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -154,10 +202,14 @@ export interface RootRouteChildren {
   ContentCreateRoute: typeof ContentCreateRoute
   ProfileEditRoute: typeof ProfileEditRoute
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
+  ApiContentContentIdRoute: typeof ApiContentContentIdRoute
   ApiContentIdRoute: typeof ApiContentIdRoute
+  ApiUserUsernameRoute: typeof ApiUserUsernameRoute
   ApiUserProfileRoute: typeof ApiUserProfileRoute
   ContentIdEditRoute: typeof ContentIdEditRoute
+  PUsernameContentIdRoute: typeof PUsernameContentIdRoute
   ApiContentIndexRoute: typeof ApiContentIndexRoute
+  PUsernameIndexRoute: typeof PUsernameIndexRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -197,11 +249,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ContentCreateRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/p/$username/': {
+      id: '/p/$username/'
+      path: '/p/$username'
+      fullPath: '/p/$username'
+      preLoaderRoute: typeof PUsernameIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/content/': {
       id: '/api/content/'
       path: '/api/content'
       fullPath: '/api/content'
       preLoaderRoute: typeof ApiContentIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/p/$username/$contentId': {
+      id: '/p/$username/$contentId'
+      path: '/p/$username/$contentId'
+      fullPath: '/p/$username/$contentId'
+      preLoaderRoute: typeof PUsernameContentIdRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/content/$id/edit': {
@@ -218,11 +284,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiUserProfileRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/user/$username': {
+      id: '/api/user/$username'
+      path: '/api/user/$username'
+      fullPath: '/api/user/$username'
+      preLoaderRoute: typeof ApiUserUsernameRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/content/$id': {
       id: '/api/content/$id'
       path: '/api/content/$id'
       fullPath: '/api/content/$id'
       preLoaderRoute: typeof ApiContentIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/content/$contentId': {
+      id: '/api/content/$contentId'
+      path: '/api/content/$contentId'
+      fullPath: '/api/content/$contentId'
+      preLoaderRoute: typeof ApiContentContentIdRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/auth/$': {
@@ -242,10 +322,14 @@ const rootRouteChildren: RootRouteChildren = {
   ContentCreateRoute: ContentCreateRoute,
   ProfileEditRoute: ProfileEditRoute,
   ApiAuthSplatRoute: ApiAuthSplatRoute,
+  ApiContentContentIdRoute: ApiContentContentIdRoute,
   ApiContentIdRoute: ApiContentIdRoute,
+  ApiUserUsernameRoute: ApiUserUsernameRoute,
   ApiUserProfileRoute: ApiUserProfileRoute,
   ContentIdEditRoute: ContentIdEditRoute,
+  PUsernameContentIdRoute: PUsernameContentIdRoute,
   ApiContentIndexRoute: ApiContentIndexRoute,
+  PUsernameIndexRoute: PUsernameIndexRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

@@ -62,3 +62,48 @@ export const useUpdateProfile = () => {
     },
   })
 }
+
+// Get user by username with their content
+export interface UserWithContent {
+  id: string
+  name: string
+  email: string
+  fullname: string
+  username: string
+  bio: string
+  image?: string | null
+}
+
+export interface UserContentItem {
+  id: string
+  title: string
+  excerpt?: string | null
+  isPremium: boolean
+  createdAt: string
+  updatedAt: string
+}
+
+export interface UserWithContentResponse {
+  user: UserWithContent
+  content: UserContentItem[]
+  pagination: {
+    cursor: string | null
+    hasMore: boolean
+    limit: number
+  }
+}
+
+export const useUserWithContent = (username: string, cursor?: string) => {
+  return useQuery<UserWithContentResponse>({
+    queryKey: ['user', 'with-content', username, cursor],
+    queryFn: async () => {
+      const params = new URLSearchParams()
+      if (cursor) params.set('cursor', cursor)
+      params.set('limit', '12')
+
+      const response = await fetch(`/api/user/${username}?${params.toString()}`)
+      return handleResponse(response)
+    },
+    enabled: !!username,
+  })
+}
