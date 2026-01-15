@@ -9,38 +9,147 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as SignInRouteImport } from './routes/sign-in'
+import { Route as DashboardRouteImport } from './routes/dashboard'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as ContentCreateRouteImport } from './routes/content.create'
+import { Route as ApiUserIndexRouteImport } from './routes/api/user/index'
+import { Route as ApiSessionIndexRouteImport } from './routes/api/session/index'
+import { Route as ApiContentIndexRouteImport } from './routes/api/content/index'
+import { Route as ApiContentIdRouteImport } from './routes/api/content/$id'
 
+const SignInRoute = SignInRouteImport.update({
+  id: '/sign-in',
+  path: '/sign-in',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DashboardRoute = DashboardRouteImport.update({
+  id: '/dashboard',
+  path: '/dashboard',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ContentCreateRoute = ContentCreateRouteImport.update({
+  id: '/content/create',
+  path: '/content/create',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiUserIndexRoute = ApiUserIndexRouteImport.update({
+  id: '/api/user/',
+  path: '/api/user/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiSessionIndexRoute = ApiSessionIndexRouteImport.update({
+  id: '/api/session/',
+  path: '/api/session/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiContentIndexRoute = ApiContentIndexRouteImport.update({
+  id: '/api/content/',
+  path: '/api/content/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiContentIdRoute = ApiContentIdRouteImport.update({
+  id: '/api/content/$id',
+  path: '/api/content/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/dashboard': typeof DashboardRoute
+  '/sign-in': typeof SignInRoute
+  '/content/create': typeof ContentCreateRoute
+  '/api/content/$id': typeof ApiContentIdRoute
+  '/api/content': typeof ApiContentIndexRoute
+  '/api/session': typeof ApiSessionIndexRoute
+  '/api/user': typeof ApiUserIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/dashboard': typeof DashboardRoute
+  '/sign-in': typeof SignInRoute
+  '/content/create': typeof ContentCreateRoute
+  '/api/content/$id': typeof ApiContentIdRoute
+  '/api/content': typeof ApiContentIndexRoute
+  '/api/session': typeof ApiSessionIndexRoute
+  '/api/user': typeof ApiUserIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/dashboard': typeof DashboardRoute
+  '/sign-in': typeof SignInRoute
+  '/content/create': typeof ContentCreateRoute
+  '/api/content/$id': typeof ApiContentIdRoute
+  '/api/content/': typeof ApiContentIndexRoute
+  '/api/session/': typeof ApiSessionIndexRoute
+  '/api/user/': typeof ApiUserIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/'
+  fullPaths:
+    | '/'
+    | '/dashboard'
+    | '/sign-in'
+    | '/content/create'
+    | '/api/content/$id'
+    | '/api/content'
+    | '/api/session'
+    | '/api/user'
   fileRoutesByTo: FileRoutesByTo
-  to: '/'
-  id: '__root__' | '/'
+  to:
+    | '/'
+    | '/dashboard'
+    | '/sign-in'
+    | '/content/create'
+    | '/api/content/$id'
+    | '/api/content'
+    | '/api/session'
+    | '/api/user'
+  id:
+    | '__root__'
+    | '/'
+    | '/dashboard'
+    | '/sign-in'
+    | '/content/create'
+    | '/api/content/$id'
+    | '/api/content/'
+    | '/api/session/'
+    | '/api/user/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  DashboardRoute: typeof DashboardRoute
+  SignInRoute: typeof SignInRoute
+  ContentCreateRoute: typeof ContentCreateRoute
+  ApiContentIdRoute: typeof ApiContentIdRoute
+  ApiContentIndexRoute: typeof ApiContentIndexRoute
+  ApiSessionIndexRoute: typeof ApiSessionIndexRoute
+  ApiUserIndexRoute: typeof ApiUserIndexRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/sign-in': {
+      id: '/sign-in'
+      path: '/sign-in'
+      fullPath: '/sign-in'
+      preLoaderRoute: typeof SignInRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/dashboard': {
+      id: '/dashboard'
+      path: '/dashboard'
+      fullPath: '/dashboard'
+      preLoaderRoute: typeof DashboardRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/': {
       id: '/'
       path: '/'
@@ -48,11 +157,53 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/content/create': {
+      id: '/content/create'
+      path: '/content/create'
+      fullPath: '/content/create'
+      preLoaderRoute: typeof ContentCreateRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/user/': {
+      id: '/api/user/'
+      path: '/api/user'
+      fullPath: '/api/user'
+      preLoaderRoute: typeof ApiUserIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/session/': {
+      id: '/api/session/'
+      path: '/api/session'
+      fullPath: '/api/session'
+      preLoaderRoute: typeof ApiSessionIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/content/': {
+      id: '/api/content/'
+      path: '/api/content'
+      fullPath: '/api/content'
+      preLoaderRoute: typeof ApiContentIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/content/$id': {
+      id: '/api/content/$id'
+      path: '/api/content/$id'
+      fullPath: '/api/content/$id'
+      preLoaderRoute: typeof ApiContentIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  DashboardRoute: DashboardRoute,
+  SignInRoute: SignInRoute,
+  ContentCreateRoute: ContentCreateRoute,
+  ApiContentIdRoute: ApiContentIdRoute,
+  ApiContentIndexRoute: ApiContentIndexRoute,
+  ApiSessionIndexRoute: ApiSessionIndexRoute,
+  ApiUserIndexRoute: ApiUserIndexRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

@@ -1,5 +1,6 @@
 import { HeadContent, Scripts, createRootRoute } from '@tanstack/react-router'
-import { Toaster } from 'sonner';
+import { Toaster } from 'sonner'
+import { Providers } from '@/components/providers'
 import appCss from '../styles.css?url'
 
 export const Route = createRootRoute({
@@ -24,10 +25,10 @@ export const Route = createRootRoute({
     ],
   }),
 
-  shellComponent: RootDocument,
+  component: RootComponent,
 })
 
-function RootDocument({ children }: { children: React.ReactNode }) {
+function RootComponent() {
   return (
     <html lang="en">
       <head>
@@ -35,9 +36,17 @@ function RootDocument({ children }: { children: React.ReactNode }) {
       </head>
       <body>
         <Toaster />
-        {children}
+        <Providers>
+          <RootOutlet />
+        </Providers>
         <Scripts />
       </body>
     </html>
   )
 }
+
+function RootOutlet() {
+  const Outlet = createRootRoute.useOutlet()
+  return Outlet
+}
+
