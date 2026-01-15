@@ -175,11 +175,6 @@ function ContentPage() {
           <Card>
             <CardHeader>
               <CardTitle className="text-3xl font-bold text-gray-900">{title}</CardTitle>
-              {excerpt && !hasAccess && (
-                <CardDescription className="text-lg text-gray-600 mt-2">
-                  {excerpt}
-                </CardDescription>
-              )}
             </CardHeader>
 
             <CardContent className="pt-6">

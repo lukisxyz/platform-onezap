@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
-import { Zap, ArrowLeft, Calendar } from 'lucide-react'
+import { Zap, ArrowLeft } from 'lucide-react'
 import { useUserWithContent, UserContentItem } from '@/api/user/profile'
 
 export const Route = createFileRoute('/p/$username/')({
@@ -96,7 +96,7 @@ function UserProfilePage() {
     )
   }
 
-  const { user, content } = data
+  const { user } = data
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -144,15 +144,6 @@ function UserProfilePage() {
                 {user.bio && (
                   <p className="text-gray-700 mb-4">{user.bio}</p>
                 )}
-                <div className="flex items-center gap-2 text-sm text-gray-500">
-                  <Calendar className="h-4 w-4" />
-                  <span>
-                    Member since {new Date(user.createdAt || Date.now()).toLocaleDateString('en-US', {
-                      month: 'long',
-                      year: 'numeric',
-                    })}
-                  </span>
-                </div>
               </div>
             </div>
           </CardContent>
