@@ -1,4 +1,4 @@
-import { createFileRoute } from '@tanstack/react-router'
+import { createFileRoute, redirect } from '@tanstack/react-router'
 import { useNavigate } from '@tanstack/react-router'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -12,13 +12,15 @@ import { Zap, ArrowLeft, Save } from 'lucide-react'
 import { useCreateContent } from '@/api/content'
 import { toast } from 'sonner'
 import { createContentSchema } from '@/api/content/types'
-import { ProtectedRoute } from '@/components/protected-route'
+import { authClient } from '@/lib/auth'
 
 export const Route = createFileRoute('/content/create')({
+  loader: async () => {
+    const data = await authClient.getSession();
+    if (!data.data) redirect({ to: "/sign-in" })
+  },
   component: () => (
-    <ProtectedRoute>
-      <CreateContent />
-    </ProtectedRoute>
+    <CreateContent />
   ),
 })
 

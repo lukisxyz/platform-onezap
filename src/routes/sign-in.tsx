@@ -65,7 +65,6 @@ function SignIn() {
         uri,
         version: '1',
         statement: 'By signing this message, you agree to the Terms of Service and Privacy Policy of OneZap platform.',
-        issuedAt: new Date(),
       })
 
       // Step 3: Sign the message with wallet

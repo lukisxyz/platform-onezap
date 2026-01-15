@@ -8,14 +8,12 @@ import { useNavigate } from '@tanstack/react-router'
 import { useAccount } from 'wagmi'
 import { useContentList } from '@/api/content'
 import { useCreateContent, useDeleteContent } from '@/api/content'
+import { useSiweLogout } from '@/api/siwe'
 import { toast } from 'sonner'
-import { ProtectedRoute } from '@/components/protected-route'
 
 export const Route = createFileRoute('/dashboard')({
   component: () => (
-    <ProtectedRoute>
-      <Dashboard />
-    </ProtectedRoute>
+    <Dashboard />
   ),
 })
 
@@ -25,6 +23,7 @@ function Dashboard() {
   const { data: content, isLoading, error } = useContentList()
   const createContent = useCreateContent()
   const deleteContent = useDeleteContent()
+  const logoutMutation = useSiweLogout()
 
   const handleCreateContent = async () => {
     try {
@@ -47,14 +46,24 @@ function Dashboard() {
     }
   }
 
+  const handleLogout = async () => {
+    try {
+      await logoutMutation.mutateAsync()
+      toast.success('Logged out successfully')
+      navigate({ to: '/' })
+    } catch (error) {
+      toast.error('Failed to logout')
+    }
+  }
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-50 via-white to-blue-50">
+    <div className="min-h-screen bg-white">
       {/* Header */}
       <header className="border-b bg-white">
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <Zap className="h-8 w-8 text-purple-600" />
+              <Zap className="h-8 w-8 text-blue-600" />
               <span className="text-2xl font-bold text-gray-900">OneZap</span>
             </div>
             <div className="flex items-center gap-4">
@@ -64,7 +73,8 @@ function Dashboard() {
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => navigate({ to: '/' })}
+                onClick={handleLogout}
+                disabled={logoutMutation.isPending}
               >
                 <LogOut className="h-4 w-4 mr-2" />
                 Exit
@@ -101,7 +111,7 @@ function Dashboard() {
           <CardContent>
             {isLoading ? (
               <div className="flex items-center justify-center py-8">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600"></div>
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
               </div>
             ) : error ? (
               <div className="text-center py-8 text-red-600">

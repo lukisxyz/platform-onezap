@@ -1,6 +1,6 @@
 import { createFileRoute } from '@tanstack/react-router'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Zap, Shield, Sparkles } from 'lucide-react'
 import { useNavigate } from '@tanstack/react-router'
 
@@ -10,12 +10,12 @@ function Index() {
   const navigate = useNavigate()
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-50 via-white to-blue-50">
+    <div className="min-h-screen bg-white">
       {/* Header */}
       <header className="container mx-auto px-4 py-6">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <Zap className="h-8 w-8 text-purple-600" />
+            <Zap className="h-8 w-8 text-blue-600" />
             <span className="text-2xl font-bold text-gray-900">OneZap</span>
           </div>
           <Button
@@ -30,14 +30,14 @@ function Index() {
       {/* Hero Section */}
       <main className="container mx-auto px-4 py-20">
         <div className="max-w-4xl mx-auto text-center">
-          <div className="inline-flex items-center gap-2 bg-purple-100 text-purple-800 px-4 py-2 rounded-full text-sm font-medium mb-8">
+          <div className="inline-flex items-center gap-2 bg-blue-100 text-blue-800 px-4 py-2 rounded-full text-sm font-medium mb-8">
             <Sparkles className="h-4 w-4" />
             Introducing Lossless Subscription
           </div>
 
           <h1 className="text-5xl md:text-6xl font-bold text-gray-900 mb-6">
             The Future of
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-purple-600 to-blue-600">
+            <span className="text-blue-600">
               {' '}Digital Subscriptions
             </span>
           </h1>
@@ -50,28 +50,20 @@ function Index() {
           <div className="flex flex-col sm:flex-row gap-4 justify-center mb-16">
             <Button
               size="lg"
-              className="text-lg px-8 py-6 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700"
+              className="text-lg px-8 py-6 bg-blue-600 hover:bg-blue-700"
               onClick={() => navigate({ to: '/dashboard' })}
             >
               Get Started
               <Zap className="ml-2 h-5 w-5" />
             </Button>
-            <Button
-              size="lg"
-              variant="outline"
-              className="text-lg px-8 py-6"
-              onClick={() => navigate({ to: '/sign-in' })}
-            >
-              Sign In with Wallet
-            </Button>
           </div>
 
           {/* Feature Cards */}
           <div className="grid md:grid-cols-3 gap-6 mt-20">
-            <Card className="border-2 hover:border-purple-200 transition-colors">
+            <Card className="border-2 hover:border-blue-200 transition-colors">
               <CardHeader>
-                <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center mb-4">
-                  <Shield className="h-6 w-6 text-purple-600" />
+                <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center mb-4">
+                  <Shield className="h-6 w-6 text-blue-600" />
                 </div>
                 <CardTitle>Blockchain Security</CardTitle>
                 <CardDescription>
@@ -80,10 +72,10 @@ function Index() {
               </CardHeader>
             </Card>
 
-            <Card className="border-2 hover:border-purple-200 transition-colors">
+            <Card className="border-2 hover:border-blue-200 transition-colors">
               <CardHeader>
-                <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center mb-4">
-                  <Zap className="h-6 w-6 text-purple-600" />
+                <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center mb-4">
+                  <Zap className="h-6 w-6 text-blue-600" />
                 </div>
                 <CardTitle>Lossless Technology</CardTitle>
                 <CardDescription>
@@ -92,10 +84,10 @@ function Index() {
               </CardHeader>
             </Card>
 
-            <Card className="border-2 hover:border-purple-200 transition-colors">
+            <Card className="border-2 hover:border-blue-200 transition-colors">
               <CardHeader>
-                <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center mb-4">
-                  <Sparkles className="h-6 w-6 text-purple-600" />
+                <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center mb-4">
+                  <Sparkles className="h-6 w-6 text-blue-600" />
                 </div>
                 <CardTitle>Seamless Experience</CardTitle>
                 <CardDescription>

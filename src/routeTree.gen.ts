@@ -13,6 +13,12 @@ import { Route as SignInRouteImport } from './routes/sign-in'
 import { Route as DashboardRouteImport } from './routes/dashboard'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as ContentCreateRouteImport } from './routes/content.create'
+import { Route as ApiContentIndexRouteImport } from './routes/api.content.index'
+import { Route as ApiSiweVerifyRouteImport } from './routes/api.siwe.verify'
+import { Route as ApiSiweNonceRouteImport } from './routes/api.siwe.nonce'
+import { Route as ApiSiweLogoutRouteImport } from './routes/api.siwe.logout'
+import { Route as ApiContentIdRouteImport } from './routes/api.content.$id'
+import { Route as ApiAuthSplatRouteImport } from './routes/api.auth.$'
 
 const SignInRoute = SignInRouteImport.update({
   id: '/sign-in',
@@ -34,18 +40,60 @@ const ContentCreateRoute = ContentCreateRouteImport.update({
   path: '/content/create',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiContentIndexRoute = ApiContentIndexRouteImport.update({
+  id: '/api/content/',
+  path: '/api/content/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiSiweVerifyRoute = ApiSiweVerifyRouteImport.update({
+  id: '/api/siwe/verify',
+  path: '/api/siwe/verify',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiSiweNonceRoute = ApiSiweNonceRouteImport.update({
+  id: '/api/siwe/nonce',
+  path: '/api/siwe/nonce',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiSiweLogoutRoute = ApiSiweLogoutRouteImport.update({
+  id: '/api/siwe/logout',
+  path: '/api/siwe/logout',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiContentIdRoute = ApiContentIdRouteImport.update({
+  id: '/api/content/$id',
+  path: '/api/content/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiAuthSplatRoute = ApiAuthSplatRouteImport.update({
+  id: '/api/auth/$',
+  path: '/api/auth/$',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/dashboard': typeof DashboardRoute
   '/sign-in': typeof SignInRoute
   '/content/create': typeof ContentCreateRoute
+  '/api/auth/$': typeof ApiAuthSplatRoute
+  '/api/content/$id': typeof ApiContentIdRoute
+  '/api/siwe/logout': typeof ApiSiweLogoutRoute
+  '/api/siwe/nonce': typeof ApiSiweNonceRoute
+  '/api/siwe/verify': typeof ApiSiweVerifyRoute
+  '/api/content': typeof ApiContentIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/dashboard': typeof DashboardRoute
   '/sign-in': typeof SignInRoute
   '/content/create': typeof ContentCreateRoute
+  '/api/auth/$': typeof ApiAuthSplatRoute
+  '/api/content/$id': typeof ApiContentIdRoute
+  '/api/siwe/logout': typeof ApiSiweLogoutRoute
+  '/api/siwe/nonce': typeof ApiSiweNonceRoute
+  '/api/siwe/verify': typeof ApiSiweVerifyRoute
+  '/api/content': typeof ApiContentIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -53,13 +101,50 @@ export interface FileRoutesById {
   '/dashboard': typeof DashboardRoute
   '/sign-in': typeof SignInRoute
   '/content/create': typeof ContentCreateRoute
+  '/api/auth/$': typeof ApiAuthSplatRoute
+  '/api/content/$id': typeof ApiContentIdRoute
+  '/api/siwe/logout': typeof ApiSiweLogoutRoute
+  '/api/siwe/nonce': typeof ApiSiweNonceRoute
+  '/api/siwe/verify': typeof ApiSiweVerifyRoute
+  '/api/content/': typeof ApiContentIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/dashboard' | '/sign-in' | '/content/create'
+  fullPaths:
+    | '/'
+    | '/dashboard'
+    | '/sign-in'
+    | '/content/create'
+    | '/api/auth/$'
+    | '/api/content/$id'
+    | '/api/siwe/logout'
+    | '/api/siwe/nonce'
+    | '/api/siwe/verify'
+    | '/api/content'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/dashboard' | '/sign-in' | '/content/create'
-  id: '__root__' | '/' | '/dashboard' | '/sign-in' | '/content/create'
+  to:
+    | '/'
+    | '/dashboard'
+    | '/sign-in'
+    | '/content/create'
+    | '/api/auth/$'
+    | '/api/content/$id'
+    | '/api/siwe/logout'
+    | '/api/siwe/nonce'
+    | '/api/siwe/verify'
+    | '/api/content'
+  id:
+    | '__root__'
+    | '/'
+    | '/dashboard'
+    | '/sign-in'
+    | '/content/create'
+    | '/api/auth/$'
+    | '/api/content/$id'
+    | '/api/siwe/logout'
+    | '/api/siwe/nonce'
+    | '/api/siwe/verify'
+    | '/api/content/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -67,6 +152,12 @@ export interface RootRouteChildren {
   DashboardRoute: typeof DashboardRoute
   SignInRoute: typeof SignInRoute
   ContentCreateRoute: typeof ContentCreateRoute
+  ApiAuthSplatRoute: typeof ApiAuthSplatRoute
+  ApiContentIdRoute: typeof ApiContentIdRoute
+  ApiSiweLogoutRoute: typeof ApiSiweLogoutRoute
+  ApiSiweNonceRoute: typeof ApiSiweNonceRoute
+  ApiSiweVerifyRoute: typeof ApiSiweVerifyRoute
+  ApiContentIndexRoute: typeof ApiContentIndexRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -99,6 +190,48 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ContentCreateRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/content/': {
+      id: '/api/content/'
+      path: '/api/content'
+      fullPath: '/api/content'
+      preLoaderRoute: typeof ApiContentIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/siwe/verify': {
+      id: '/api/siwe/verify'
+      path: '/api/siwe/verify'
+      fullPath: '/api/siwe/verify'
+      preLoaderRoute: typeof ApiSiweVerifyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/siwe/nonce': {
+      id: '/api/siwe/nonce'
+      path: '/api/siwe/nonce'
+      fullPath: '/api/siwe/nonce'
+      preLoaderRoute: typeof ApiSiweNonceRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/siwe/logout': {
+      id: '/api/siwe/logout'
+      path: '/api/siwe/logout'
+      fullPath: '/api/siwe/logout'
+      preLoaderRoute: typeof ApiSiweLogoutRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/content/$id': {
+      id: '/api/content/$id'
+      path: '/api/content/$id'
+      fullPath: '/api/content/$id'
+      preLoaderRoute: typeof ApiContentIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/auth/$': {
+      id: '/api/auth/$'
+      path: '/api/auth/$'
+      fullPath: '/api/auth/$'
+      preLoaderRoute: typeof ApiAuthSplatRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -107,6 +240,12 @@ const rootRouteChildren: RootRouteChildren = {
   DashboardRoute: DashboardRoute,
   SignInRoute: SignInRoute,
   ContentCreateRoute: ContentCreateRoute,
+  ApiAuthSplatRoute: ApiAuthSplatRoute,
+  ApiContentIdRoute: ApiContentIdRoute,
+  ApiSiweLogoutRoute: ApiSiweLogoutRoute,
+  ApiSiweNonceRoute: ApiSiweNonceRoute,
+  ApiSiweVerifyRoute: ApiSiweVerifyRoute,
+  ApiContentIndexRoute: ApiContentIndexRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

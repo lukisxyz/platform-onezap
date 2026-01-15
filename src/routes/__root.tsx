@@ -1,4 +1,4 @@
-import { HeadContent, Scripts, createRootRoute } from '@tanstack/react-router'
+import { HeadContent, Outlet, Scripts, createRootRoute } from '@tanstack/react-router'
 import { Toaster } from 'sonner'
 import { Providers } from '@/components/providers'
 import appCss from '../styles.css?url'
@@ -46,7 +46,6 @@ function RootComponent() {
 }
 
 function RootOutlet() {
-  const Outlet = createRootRoute.useOutlet()
-  return Outlet
+  return <Outlet />
 }
 
