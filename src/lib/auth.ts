@@ -1,0 +1,56 @@
+import { betterAuth } from "better-auth";
+import { siwe } from "better-auth/plugins";
+import { drizzleAdapter } from "better-auth/adapters/drizzle";
+import { Address, verifyMessage } from "viem";
+import { generateRandomString } from "better-auth/crypto";
+import { db } from "@/lib/db";
+import { config as wagmiConfig } from "@/lib/wagmi";
+import { getEnsAvatar, getEnsName } from "viem/actions";
+
+
+export const auth = betterAuth({
+  database: drizzleAdapter(db, {
+    provider: 'pg'
+  }),
+  plugins: [
+    siwe({
+      domain: "onezap.com",
+      emailDomainName: "onezap",
+      anonymous: false,
+      getNonce: async () => {
+        return generateRandomString(32, "a-z", "A-Z", "0-9");
+      },
+      verifyMessage: async ({ message, signature, address }) => {
+        try {
+          const isValid = await verifyMessage({
+            address: address as `0x${string}`,
+            message,
+            signature: signature as `0x${string}`,
+          });
+          return isValid;
+        } catch (error) {
+          return false;
+        }
+      },
+      ensLookup: async ({ walletAddress }) => {
+        try {
+          const ensName = await getEnsName(wagmiConfig.getClient(), {
+            address: walletAddress as Address
+          });
+          const ensAvatar = await getEnsAvatar(wagmiConfig.getClient(), {
+            name: ensName || walletAddress,
+          })
+          return {
+            name: ensName || walletAddress,
+            avatar: ensAvatar || '',
+          };
+        } catch {
+          return {
+            name: walletAddress,
+            avatar: ''
+          };
+        }
+      },
+    }),
+  ],
+});
