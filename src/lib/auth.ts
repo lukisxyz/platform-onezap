@@ -6,8 +6,6 @@ import { generateRandomString } from "better-auth/crypto";
 import { db } from "@/lib/db";
 import { config as wagmiConfig } from "@/lib/wagmi";
 import { getEnsAvatar, getEnsName } from "viem/actions";
-import { createAuthClient } from "better-auth/client";
-import { siweClient } from "better-auth/client/plugins";
 import * as schema from "@/lib/schema";
 
 export const auth = betterAuth({
@@ -15,13 +13,6 @@ export const auth = betterAuth({
     schema: schema,
     provider: 'pg'
   }),
-  session: {
-    cookieCache: {
-      enabled: true,
-      maxAge: 5 * 60,
-      strategy: "compact"
-    }
-  },
   plugins: [
     siwe({
       domain: "onezap.com",
@@ -65,7 +56,3 @@ export const auth = betterAuth({
   ],
 });
 
-export const authClient = createAuthClient({
-  baseURL: process.env.BETTER_AUTH_BASE_URL!,
-  plugins: [siweClient()],
-});

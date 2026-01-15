@@ -3,12 +3,13 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Badge } from '@/components/ui/badge'
-import { Zap, Plus, LogOut } from 'lucide-react'
+import { Zap, Plus, LogOut, Edit, Trash2, UserCircle } from 'lucide-react'
 import { useNavigate } from '@tanstack/react-router'
 import { useAccount } from 'wagmi'
 import { useContentList } from '@/api/content'
-import { useCreateContent, useDeleteContent } from '@/api/content'
+import { useDeleteContent } from '@/api/content'
 import { useSiweLogout } from '@/api/siwe'
+import { useUserProfile } from '@/api/user/profile'
 import { toast } from 'sonner'
 
 export const Route = createFileRoute('/dashboard')({
@@ -21,21 +22,9 @@ function Dashboard() {
   const navigate = useNavigate()
   const { address } = useAccount()
   const { data: content, isLoading, error } = useContentList()
-  const createContent = useCreateContent()
+  const { data: profile, isLoading: isProfileLoading } = useUserProfile()
   const deleteContent = useDeleteContent()
   const logoutMutation = useSiweLogout()
-
-  const handleCreateContent = async () => {
-    try {
-      await createContent.mutateAsync({
-        title: 'New Content Item',
-        description: 'Created from dashboard',
-      })
-      toast.success('Content created successfully')
-    } catch (error) {
-      toast.error('Failed to create content')
-    }
-  }
 
   const handleDeleteContent = async (id: string) => {
     try {
@@ -91,6 +80,67 @@ function Dashboard() {
           <p className="text-gray-600">Manage your content with lossless subscription</p>
         </div>
 
+        {/* Profile Card */}
+        {isProfileLoading ? (
+          <Card className="mb-8">
+            <CardHeader>
+              <div className="flex items-center gap-2">
+                <UserCircle className="h-5 w-5 text-blue-600" />
+                <CardTitle>Profile</CardTitle>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="flex items-center justify-center py-4">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+              </div>
+            </CardContent>
+          </Card>
+        ) : profile ? (
+          <Card className="mb-8">
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <UserCircle className="h-5 w-5 text-blue-600" />
+                  <CardTitle>Profile</CardTitle>
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => navigate({ to: '/profile/edit' })}
+                >
+                  <Edit className="h-4 w-4 mr-2" />
+                  Edit Profile
+                </Button>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="space-y-1">
+                  <p className="text-sm font-medium text-gray-500">Full Name</p>
+                  <p className="text-lg font-semibold">{profile.fullname || 'Not set'}</p>
+                </div>
+                <div className="space-y-1">
+                  <p className="text-sm font-medium text-gray-500">Username</p>
+                  <p className="text-lg font-semibold">@{profile.username || 'Not set'}</p>
+                </div>
+                <div className="space-y-1 md:col-span-2">
+                  <p className="text-sm font-medium text-gray-500">Bio</p>
+                  <p className="text-gray-700">
+                    {profile.bio || 'No bio provided'}
+                  </p>
+                </div>
+              </div>
+              {(!profile.fullname || !profile.username || !profile.bio) && (
+                <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+                  <p className="text-sm text-yellow-800">
+                    Your profile is incomplete. Please complete it to get the most out of your experience.
+                  </p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        ) : null}
+
         {/* Content Table */}
         <Card>
           <CardHeader>
@@ -100,8 +150,7 @@ function Dashboard() {
                 <CardDescription>All your content items in one place</CardDescription>
               </div>
               <Button
-                onClick={handleCreateContent}
-                disabled={createContent.isPending}
+                onClick={() => navigate({ to: '/content/create' })}
               >
                 <Plus className="h-4 w-4 mr-2" />
                 Create Content
@@ -126,31 +175,46 @@ function Dashboard() {
                 <TableHeader>
                   <TableRow>
                     <TableHead>Title</TableHead>
-                    <TableHead>Description</TableHead>
+                    <TableHead>Status</TableHead>
                     <TableHead>Created</TableHead>
-                    <TableHead>Actions</TableHead>
+                    <TableHead>Action</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {content.map((item) => (
                     <TableRow key={item.id}>
-                      <TableCell className="font-medium">{item.title}</TableCell>
-                      <TableCell>{item.description || '-'}</TableCell>
+                      <TableCell className="font-medium max-w-[300px]">
+                        <div className="text-wrap">{item.title}</div>
+                      </TableCell>
                       <TableCell>
-                        <Badge variant="secondary">
+                        <Badge variant={item.isPremium ? 'default' : 'secondary'}>
+                          {item.isPremium ? 'Premium' : 'Free'}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant="outline">
                           {new Date(item.createdAt).toLocaleDateString()}
                         </Badge>
                       </TableCell>
                       <TableCell>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleDeleteContent(item.id)}
-                          disabled={deleteContent.isPending}
-                          className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                        >
-                          Delete
-                        </Button>
+                        <div className="flex gap-2">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => navigate({ to: `/content/${item.id}/edit` })}
+                          >
+                            <Edit className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleDeleteContent(item.id)}
+                            disabled={deleteContent.isPending}
+                            className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
                       </TableCell>
                     </TableRow>
                   ))}

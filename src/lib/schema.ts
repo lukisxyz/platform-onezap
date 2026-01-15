@@ -14,6 +14,9 @@ export const user = pgTable("user", {
   email: text("email").notNull().unique(),
   emailVerified: boolean("email_verified").default(false).notNull(),
   image: text("image"),
+  fullname: text("fullname"),
+  username: text("username").unique(),
+  bio: text("bio"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at")
     .defaultNow()
@@ -125,7 +128,9 @@ export const walletAddressRelations = relations(walletAddress, ({ one }) => ({
 export const content = pgTable("content", {
   id: text("id").primaryKey(),
   title: text("title").notNull(),
-  description: text("description"),
+  excerpt: text("excerpt"),
+  content: text("content"),
+  isPremium: boolean("isPremium").default(false),
   userId: text("user_id")
     .notNull()
     .references(() => user.id, { onDelete: "cascade" }),

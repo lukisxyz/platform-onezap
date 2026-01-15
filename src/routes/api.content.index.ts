@@ -1,27 +1,13 @@
 import { createFileRoute } from '@tanstack/react-router'
 import { db } from '@/lib/db'
 import { content } from '@/lib/schema'
-import { auth, authClient } from '@/lib/auth'
+import { authMiddleware } from '@/middleware/auth'
 
 export const Route = createFileRoute('/api/content/')({
   server: {
+    middleware: [authMiddleware],
     handlers: {
       GET: async () => {
-        const authResult = await authClient.getSession()
-
-        if (!authResult) {
-          return new Response(
-            JSON.stringify({
-              error: 'Unauthorized',
-              message: 'Please sign in to access this resource',
-            }),
-            {
-              status: 401,
-              headers: { 'Content-Type': 'application/json' },
-            }
-          )
-        }
-
         try {
           const contentList = await db.select().from(content)
           return new Response(JSON.stringify(contentList), {
@@ -36,27 +22,10 @@ export const Route = createFileRoute('/api/content/')({
         }
       },
 
-      POST: async ({ request }) => {
-        const authResult = await auth.api.getSession({
-          headers: request.headers,
-        })
-
-        if (!authResult) {
-          return new Response(
-            JSON.stringify({
-              error: 'Unauthorized',
-              message: 'Please sign in to access this resource',
-            }),
-            {
-              status: 401,
-              headers: { 'Content-Type': 'application/json' },
-            }
-          )
-        }
-
+      POST: async ({ request, context }) => {
         try {
           const body = await request.json()
-          const { title, description } = body
+          const { title, excerpt, content: contentText, isPremium } = body
 
           if (!title) {
             return new Response(JSON.stringify({ error: 'Title is required' }), {
@@ -65,14 +34,23 @@ export const Route = createFileRoute('/api/content/')({
             })
           }
 
-          const userId = authResult.user.id
+          if (!contentText) {
+            return new Response(JSON.stringify({ error: 'Content is required' }), {
+              status: 400,
+              headers: { 'Content-Type': 'application/json' },
+            })
+          }
+
+          const userId = context.user.id
 
           const newContent = await db
             .insert(content)
             .values({
               id: crypto.randomUUID(),
               title,
-              description,
+              excerpt,
+              content: contentText,
+              isPremium: isPremium || false,
               userId,
             })
             .returning()

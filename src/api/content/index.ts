@@ -1,16 +1,37 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Content, CreateContent, UpdateContent } from './types';
 
+// Helper function to handle API responses and check for unauthorized
+const handleResponse = async (response: Response) => {
+  if (response.status === 401) {
+    window.location.href = '/sign-in';
+    throw new Error('Unauthorized - redirecting to sign in');
+  }
+  if (!response.ok) {
+    // Try to parse error response, but handle cases where there's no body (e.g., 204)
+    const contentType = response.headers.get('content-type');
+    if (contentType && contentType.includes('application/json')) {
+      const error = await response.json();
+      throw new Error(error.message || error.error || 'Request failed');
+    } else {
+      throw new Error('Request failed');
+    }
+  }
+  // Handle responses with no content (e.g., 204 status)
+  const contentLength = response.headers.get('content-length');
+  if (contentLength === '0' || response.status === 204) {
+    return null;
+  }
+  return response.json();
+};
+
 // List all content
 export const useContentList = () => {
   return useQuery({
     queryKey: ['content', 'list'],
     queryFn: async (): Promise<Content[]> => {
       const response = await fetch('/api/content');
-      if (!response.ok) {
-        throw new Error('Failed to fetch content');
-      }
-      return response.json();
+      return handleResponse(response);
     },
   });
 };
@@ -21,10 +42,7 @@ export const useContent = (id: string) => {
     queryKey: ['content', id],
     queryFn: async (): Promise<Content> => {
       const response = await fetch(`/api/content/${id}`);
-      if (!response.ok) {
-        throw new Error('Failed to fetch content');
-      }
-      return response.json();
+      return handleResponse(response);
     },
     enabled: !!id,
   });
@@ -41,10 +59,7 @@ export const useCreateContent = () => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data),
       });
-      if (!response.ok) {
-        throw new Error('Failed to create content');
-      }
-      return response.json();
+      return handleResponse(response);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['content', 'list'] });
@@ -63,10 +78,7 @@ export const useUpdateContent = () => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data),
       });
-      if (!response.ok) {
-        throw new Error('Failed to update content');
-      }
-      return response.json();
+      return handleResponse(response);
     },
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['content', 'list'] });
@@ -84,9 +96,7 @@ export const useDeleteContent = () => {
       const response = await fetch(`/api/content/${id}`, {
         method: 'DELETE',
       });
-      if (!response.ok) {
-        throw new Error('Failed to delete content');
-      }
+      return handleResponse(response);
     },
     onSuccess: (_, id) => {
       queryClient.invalidateQueries({ queryKey: ['content', 'list'] });

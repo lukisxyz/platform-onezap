@@ -12,11 +12,11 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as SignInRouteImport } from './routes/sign-in'
 import { Route as DashboardRouteImport } from './routes/dashboard'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as ProfileEditRouteImport } from './routes/profile.edit'
 import { Route as ContentCreateRouteImport } from './routes/content.create'
 import { Route as ApiContentIndexRouteImport } from './routes/api.content.index'
-import { Route as ApiSiweVerifyRouteImport } from './routes/api.siwe.verify'
-import { Route as ApiSiweNonceRouteImport } from './routes/api.siwe.nonce'
-import { Route as ApiSiweLogoutRouteImport } from './routes/api.siwe.logout'
+import { Route as ContentIdEditRouteImport } from './routes/content.$id.edit'
+import { Route as ApiUserProfileRouteImport } from './routes/api.user.profile'
 import { Route as ApiContentIdRouteImport } from './routes/api.content.$id'
 import { Route as ApiAuthSplatRouteImport } from './routes/api.auth.$'
 
@@ -35,6 +35,11 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ProfileEditRoute = ProfileEditRouteImport.update({
+  id: '/profile/edit',
+  path: '/profile/edit',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ContentCreateRoute = ContentCreateRouteImport.update({
   id: '/content/create',
   path: '/content/create',
@@ -45,19 +50,14 @@ const ApiContentIndexRoute = ApiContentIndexRouteImport.update({
   path: '/api/content/',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ApiSiweVerifyRoute = ApiSiweVerifyRouteImport.update({
-  id: '/api/siwe/verify',
-  path: '/api/siwe/verify',
+const ContentIdEditRoute = ContentIdEditRouteImport.update({
+  id: '/content/$id/edit',
+  path: '/content/$id/edit',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ApiSiweNonceRoute = ApiSiweNonceRouteImport.update({
-  id: '/api/siwe/nonce',
-  path: '/api/siwe/nonce',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ApiSiweLogoutRoute = ApiSiweLogoutRouteImport.update({
-  id: '/api/siwe/logout',
-  path: '/api/siwe/logout',
+const ApiUserProfileRoute = ApiUserProfileRouteImport.update({
+  id: '/api/user/profile',
+  path: '/api/user/profile',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiContentIdRoute = ApiContentIdRouteImport.update({
@@ -76,11 +76,11 @@ export interface FileRoutesByFullPath {
   '/dashboard': typeof DashboardRoute
   '/sign-in': typeof SignInRoute
   '/content/create': typeof ContentCreateRoute
+  '/profile/edit': typeof ProfileEditRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/content/$id': typeof ApiContentIdRoute
-  '/api/siwe/logout': typeof ApiSiweLogoutRoute
-  '/api/siwe/nonce': typeof ApiSiweNonceRoute
-  '/api/siwe/verify': typeof ApiSiweVerifyRoute
+  '/api/user/profile': typeof ApiUserProfileRoute
+  '/content/$id/edit': typeof ContentIdEditRoute
   '/api/content': typeof ApiContentIndexRoute
 }
 export interface FileRoutesByTo {
@@ -88,11 +88,11 @@ export interface FileRoutesByTo {
   '/dashboard': typeof DashboardRoute
   '/sign-in': typeof SignInRoute
   '/content/create': typeof ContentCreateRoute
+  '/profile/edit': typeof ProfileEditRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/content/$id': typeof ApiContentIdRoute
-  '/api/siwe/logout': typeof ApiSiweLogoutRoute
-  '/api/siwe/nonce': typeof ApiSiweNonceRoute
-  '/api/siwe/verify': typeof ApiSiweVerifyRoute
+  '/api/user/profile': typeof ApiUserProfileRoute
+  '/content/$id/edit': typeof ContentIdEditRoute
   '/api/content': typeof ApiContentIndexRoute
 }
 export interface FileRoutesById {
@@ -101,11 +101,11 @@ export interface FileRoutesById {
   '/dashboard': typeof DashboardRoute
   '/sign-in': typeof SignInRoute
   '/content/create': typeof ContentCreateRoute
+  '/profile/edit': typeof ProfileEditRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/content/$id': typeof ApiContentIdRoute
-  '/api/siwe/logout': typeof ApiSiweLogoutRoute
-  '/api/siwe/nonce': typeof ApiSiweNonceRoute
-  '/api/siwe/verify': typeof ApiSiweVerifyRoute
+  '/api/user/profile': typeof ApiUserProfileRoute
+  '/content/$id/edit': typeof ContentIdEditRoute
   '/api/content/': typeof ApiContentIndexRoute
 }
 export interface FileRouteTypes {
@@ -115,11 +115,11 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/sign-in'
     | '/content/create'
+    | '/profile/edit'
     | '/api/auth/$'
     | '/api/content/$id'
-    | '/api/siwe/logout'
-    | '/api/siwe/nonce'
-    | '/api/siwe/verify'
+    | '/api/user/profile'
+    | '/content/$id/edit'
     | '/api/content'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -127,11 +127,11 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/sign-in'
     | '/content/create'
+    | '/profile/edit'
     | '/api/auth/$'
     | '/api/content/$id'
-    | '/api/siwe/logout'
-    | '/api/siwe/nonce'
-    | '/api/siwe/verify'
+    | '/api/user/profile'
+    | '/content/$id/edit'
     | '/api/content'
   id:
     | '__root__'
@@ -139,11 +139,11 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/sign-in'
     | '/content/create'
+    | '/profile/edit'
     | '/api/auth/$'
     | '/api/content/$id'
-    | '/api/siwe/logout'
-    | '/api/siwe/nonce'
-    | '/api/siwe/verify'
+    | '/api/user/profile'
+    | '/content/$id/edit'
     | '/api/content/'
   fileRoutesById: FileRoutesById
 }
@@ -152,11 +152,11 @@ export interface RootRouteChildren {
   DashboardRoute: typeof DashboardRoute
   SignInRoute: typeof SignInRoute
   ContentCreateRoute: typeof ContentCreateRoute
+  ProfileEditRoute: typeof ProfileEditRoute
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
   ApiContentIdRoute: typeof ApiContentIdRoute
-  ApiSiweLogoutRoute: typeof ApiSiweLogoutRoute
-  ApiSiweNonceRoute: typeof ApiSiweNonceRoute
-  ApiSiweVerifyRoute: typeof ApiSiweVerifyRoute
+  ApiUserProfileRoute: typeof ApiUserProfileRoute
+  ContentIdEditRoute: typeof ContentIdEditRoute
   ApiContentIndexRoute: typeof ApiContentIndexRoute
 }
 
@@ -183,6 +183,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/profile/edit': {
+      id: '/profile/edit'
+      path: '/profile/edit'
+      fullPath: '/profile/edit'
+      preLoaderRoute: typeof ProfileEditRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/content/create': {
       id: '/content/create'
       path: '/content/create'
@@ -197,25 +204,18 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiContentIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/api/siwe/verify': {
-      id: '/api/siwe/verify'
-      path: '/api/siwe/verify'
-      fullPath: '/api/siwe/verify'
-      preLoaderRoute: typeof ApiSiweVerifyRouteImport
+    '/content/$id/edit': {
+      id: '/content/$id/edit'
+      path: '/content/$id/edit'
+      fullPath: '/content/$id/edit'
+      preLoaderRoute: typeof ContentIdEditRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/api/siwe/nonce': {
-      id: '/api/siwe/nonce'
-      path: '/api/siwe/nonce'
-      fullPath: '/api/siwe/nonce'
-      preLoaderRoute: typeof ApiSiweNonceRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/siwe/logout': {
-      id: '/api/siwe/logout'
-      path: '/api/siwe/logout'
-      fullPath: '/api/siwe/logout'
-      preLoaderRoute: typeof ApiSiweLogoutRouteImport
+    '/api/user/profile': {
+      id: '/api/user/profile'
+      path: '/api/user/profile'
+      fullPath: '/api/user/profile'
+      preLoaderRoute: typeof ApiUserProfileRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/content/$id': {
@@ -240,11 +240,11 @@ const rootRouteChildren: RootRouteChildren = {
   DashboardRoute: DashboardRoute,
   SignInRoute: SignInRoute,
   ContentCreateRoute: ContentCreateRoute,
+  ProfileEditRoute: ProfileEditRoute,
   ApiAuthSplatRoute: ApiAuthSplatRoute,
   ApiContentIdRoute: ApiContentIdRoute,
-  ApiSiweLogoutRoute: ApiSiweLogoutRoute,
-  ApiSiweNonceRoute: ApiSiweNonceRoute,
-  ApiSiweVerifyRoute: ApiSiweVerifyRoute,
+  ApiUserProfileRoute: ApiUserProfileRoute,
+  ContentIdEditRoute: ContentIdEditRoute,
   ApiContentIndexRoute: ApiContentIndexRoute,
 }
 export const routeTree = rootRouteImport

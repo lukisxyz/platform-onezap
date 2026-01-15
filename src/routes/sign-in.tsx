@@ -5,6 +5,7 @@ import { Zap, ArrowLeft } from 'lucide-react'
 import { useNavigate } from '@tanstack/react-router'
 import { useAccount, useConnect, useDisconnect, useConnectors, type Connector, useSignMessage } from 'wagmi'
 import { useSiweNonce, useSiweVerify } from '@/api/siwe'
+import { useUserProfile } from '@/api/user/profile'
 import { config } from '@/lib/wagmi'
 import { toast } from 'sonner'
 import { createSiweMessage } from 'viem/siwe'
@@ -23,6 +24,7 @@ function SignIn() {
   const connectors = useConnectors()
   const nonceQuery = useSiweNonce(address)
   const verifyMutation = useSiweVerify()
+  const profileQuery = useUserProfile()
 
   const [isAuthenticating, setIsAuthenticating] = React.useState(false)
   const [hydrated, setHydrated] = React.useState(false)
@@ -79,7 +81,28 @@ function SignIn() {
 
       if (result.verified) {
         toast.success('Successfully signed in!')
-        navigate({ to: '/dashboard' })
+
+        // Wait for session cookie to be set before redirecting
+        // This ensures the middleware can access the session
+        await new Promise(resolve => setTimeout(resolve, 500))
+
+        // Step 5: Check if profile is complete
+        await profileQuery.refetch()
+
+        if (profileQuery.data) {
+          const { fullname, username, bio } = profileQuery.data
+          const isProfileComplete = fullname && username && bio
+
+          if (!isProfileComplete) {
+            toast.info('Please complete your profile to continue')
+            navigate({ to: '/profile/edit' })
+          } else {
+            navigate({ to: '/dashboard' })
+          }
+        } else {
+          // If profile data is not found, redirect to profile edit
+          navigate({ to: '/profile/edit' })
+        }
       }
     } catch (error: any) {
       toast.error(error.message || 'Failed to sign in. Please try again.')

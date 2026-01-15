@@ -2,29 +2,13 @@ import { createFileRoute } from '@tanstack/react-router'
 import { db } from '@/lib/db'
 import { content } from '@/lib/schema'
 import { eq } from 'drizzle-orm'
-import { auth } from '@/lib/auth'
+import { authMiddleware } from '@/middleware/auth'
 
 export const Route = createFileRoute('/api/content/$id')({
   server: {
+    middleware: [authMiddleware],
     handlers: {
-      GET: async ({ params, request }) => {
-        const authResult = await auth.api.getSession({
-          headers: request.headers,
-        })
-
-        if (!authResult) {
-          return new Response(
-            JSON.stringify({
-              error: 'Unauthorized',
-              message: 'Please sign in to access this resource',
-            }),
-            {
-              status: 401,
-              headers: { 'Content-Type': 'application/json' },
-            }
-          )
-        }
-
+      GET: async ({ params }) => {
         try {
           const { id } = params
           const result = await db.select().from(content).where(eq(content.id, id))
@@ -49,30 +33,15 @@ export const Route = createFileRoute('/api/content/$id')({
       },
 
       PUT: async ({ params, request }) => {
-        const authResult = await auth.api.getSession({
-          headers: request.headers,
-        })
-
-        if (!authResult) {
-          return new Response(
-            JSON.stringify({
-              error: 'Unauthorized',
-              message: 'Please sign in to access this resource',
-            }),
-            {
-              status: 401,
-              headers: { 'Content-Type': 'application/json' },
-            }
-          )
-        }
-
         try {
           const { id } = params
           const body = await request.json()
 
           const updateData: any = {}
           if (body.title !== undefined) updateData.title = body.title
-          if (body.description !== undefined) updateData.description = body.description
+          if (body.excerpt !== undefined) updateData.excerpt = body.excerpt
+          if (body.content !== undefined) updateData.content = body.content
+          if (body.isPremium !== undefined) updateData.isPremium = body.isPremium
           updateData.updatedAt = new Date()
 
           const result = await db
@@ -100,24 +69,7 @@ export const Route = createFileRoute('/api/content/$id')({
         }
       },
 
-      DELETE: async ({ params, request }) => {
-        const authResult = await auth.api.getSession({
-          headers: request.headers,
-        })
-
-        if (!authResult) {
-          return new Response(
-            JSON.stringify({
-              error: 'Unauthorized',
-              message: 'Please sign in to access this resource',
-            }),
-            {
-              status: 401,
-              headers: { 'Content-Type': 'application/json' },
-            }
-          )
-        }
-
+      DELETE: async ({ params }) => {
         try {
           const { id } = params
 

@@ -1,5 +1,5 @@
 import React from 'react'
-import { createFileRoute, redirect } from '@tanstack/react-router'
+import { createFileRoute, useParams } from '@tanstack/react-router'
 import { useNavigate } from '@tanstack/react-router'
 import { useForm, useWatch } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -10,19 +10,24 @@ import { Textarea } from '@/components/ui/textarea'
 import { Label } from '@/components/ui/label'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Zap, ArrowLeft, Save } from 'lucide-react'
-import { useCreateContent } from '@/api/content'
+import { useContent } from '@/api/content'
+import { useUpdateContent } from '@/api/content'
+import { updateContentSchema, type UpdateContent } from '@/api/content/types'
 import { toast } from 'sonner'
-import { createContentSchema, type CreateContent } from '@/api/content/types'
 
-export const Route = createFileRoute('/content/create')({
+export const Route = createFileRoute('/content/$id/edit')({
   component: () => (
-    <CreateContent />
+    <EditContent />
   ),
 })
 
-function CreateContent() {
+function EditContent() {
   const navigate = useNavigate()
-  const createContent = useCreateContent()
+  const params = useParams({ from: '/content/$id/edit' })
+  const id = params.id
+
+  const { data: content, isLoading, error } = useContent(id!)
+  const updateContent = useUpdateContent()
 
   const {
     register,
@@ -32,8 +37,8 @@ function CreateContent() {
     watch,
     formState: { errors, isSubmitting },
     reset,
-  } = useForm<CreateContent>({
-    resolver: zodResolver(createContentSchema),
+  } = useForm<UpdateContent>({
+    resolver: zodResolver(updateContentSchema),
     defaultValues: {
       title: '',
       excerpt: '',
@@ -63,15 +68,79 @@ function CreateContent() {
     }
   }, [contentValue, setValue])
 
-  const onSubmit = async (data: CreateContent) => {
+  // Reset form when content is loaded
+  React.useEffect(() => {
+    if (content) {
+      reset({
+        title: content.title,
+        excerpt: content.excerpt || '',
+        content: content.content || '',
+        isPremium: content.isPremium || false,
+      })
+    }
+  }, [content, reset])
+
+  const onSubmit = async (data: UpdateContent) => {
     try {
-      await createContent.mutateAsync(data)
-      toast.success('Content created successfully!')
-      reset()
+      await updateContent.mutateAsync({ id: id!, data })
+      toast.success('Content updated successfully!')
       navigate({ to: '/dashboard' })
     } catch (error) {
-      toast.error('Failed to create content. Please try again.')
+      toast.error('Failed to update content. Please try again.')
     }
+  }
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-white">
+        <header className="border-b bg-white">
+          <div className="container mx-auto px-4 py-4">
+            <div className="flex items-center gap-2">
+              <Zap className="h-8 w-8 text-blue-600" />
+              <span className="text-2xl font-bold text-gray-900">OneZap</span>
+            </div>
+          </div>
+        </header>
+        <main className="container mx-auto px-4 py-8">
+          <div className="flex items-center justify-center py-20">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+          </div>
+        </main>
+      </div>
+    )
+  }
+
+  if (error || !content) {
+    return (
+      <div className="min-h-screen bg-white">
+        <header className="border-b bg-white">
+          <div className="container mx-auto px-4 py-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Zap className="h-8 w-8 text-blue-600" />
+                <span className="text-2xl font-bold text-gray-900">OneZap</span>
+              </div>
+              <Button
+                variant="outline"
+                onClick={() => navigate({ to: '/dashboard' })}
+              >
+                <ArrowLeft className="h-4 w-4 mr-2" />
+                Back to Dashboard
+              </Button>
+            </div>
+          </div>
+        </header>
+        <main className="container mx-auto px-4 py-8 max-w-2xl">
+          <Card>
+            <CardContent className="pt-6">
+              <div className="text-center py-8 text-red-600">
+                Error loading content. Please try again.
+              </div>
+            </CardContent>
+          </Card>
+        </main>
+      </div>
+    )
   }
 
   return (
@@ -99,9 +168,9 @@ function CreateContent() {
       <main className="container mx-auto px-4 py-8 max-w-2xl">
         <Card>
           <CardHeader>
-            <CardTitle>Create New Content</CardTitle>
+            <CardTitle>Edit Content</CardTitle>
             <CardDescription>
-              Add a new content item to your library
+              Update your content item
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -164,16 +233,16 @@ function CreateContent() {
                 <Button
                   type="submit"
                   className="flex-1 bg-blue-600 hover:bg-blue-700"
-                  disabled={isSubmitting || createContent.isPending}
+                  disabled={isSubmitting || updateContent.isPending}
                 >
                   <Save className="h-4 w-4 mr-2" />
-                  {isSubmitting || createContent.isPending ? 'Saving...' : 'Save'}
+                  {isSubmitting || updateContent.isPending ? 'Saving...' : 'Save Changes'}
                 </Button>
                 <Button
                   type="button"
                   variant="outline"
                   onClick={() => navigate({ to: '/dashboard' })}
-                  disabled={isSubmitting || createContent.isPending}
+                  disabled={isSubmitting || updateContent.isPending}
                 >
                   Cancel
                 </Button>

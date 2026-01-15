@@ -1,4 +1,7 @@
+import { authClient } from '@/lib/auth.client';
+import { config } from '@/lib/wagmi';
 import { useMutation, useQuery } from '@tanstack/react-query';
+import { Address } from 'viem';
 
 export interface SiweNonceResponse {
   nonce: string;
@@ -16,17 +19,17 @@ export const useSiweNonce = (walletAddress: string | undefined) => {
   return useQuery({
     queryKey: ['siwe-nonce', walletAddress],
     queryFn: async (): Promise<SiweNonceResponse> => {
-      const response = await fetch(`/api/siwe/nonce?walletAddress=${walletAddress}`, {
-        method: 'GET',
-      });
+      const { data, error } = await authClient.siwe.nonce({
+        walletAddress: walletAddress as Address,
+        chainId: config.getClient().chain.id,
+      })
 
-      if (!response.ok) {
+      if (error) {
         throw new Error('Failed to get nonce');
       }
 
-      const result = await response.json();
       return {
-        nonce: result.nonce,
+        nonce: data.nonce,
       };
     },
     enabled: false,
@@ -39,39 +42,32 @@ export const useSiweVerify = () => {
     mutationFn: async (params: {
       message: string;
       signature: string;
-      walletAddress: string;
-      chainId?: number;
+      walletAddress: Address;
     }): Promise<SiweVerifyResponse> => {
-      const response = await fetch('/api/siwe/verify', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(params),
+      const { data, error } = await authClient.siwe.verify({
+        message: params.message,
+        signature: params.signature,
+        walletAddress: params.walletAddress as Address,
+        chainId: config.getClient().chain.id,
       });
 
-      const result = await response.json();
-
-      if (!response.ok || !result.verified) {
-        throw new Error(result.error || 'Verification failed');
+      if (error) {
+        throw new Error(error.message || 'Verification failed');
       }
 
-      return result;
+      return {
+        verified: true,
+        success: true,
+        data
+      };
     },
   });
 };
 
-// Logout via SIWE
 export const useSiweLogout = () => {
   return useMutation({
     mutationFn: async () => {
-      const response = await fetch('/api/siwe/logout', {
-        method: 'POST',
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to logout');
-      }
-
-      return response.json();
+      await authClient.signOut();
     },
   });
 };
