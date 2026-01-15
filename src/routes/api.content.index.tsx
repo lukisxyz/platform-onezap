@@ -1,10 +1,27 @@
-import { createFileRoute } from '@tanstack/react-router'
+import { createAPIFileRoute } from '@tanstack/start/api'
 import { db } from '@/lib/db'
 import { content } from '@/lib/schema'
-import { eq } from 'drizzle-orm'
+import { auth } from '@/lib/auth'
 
-export const Route = createFileRoute('/api/content/')({
-  GET: async () => {
+export const APIRoute = createAPIFileRoute('/api/content')({
+  GET: async ({ request }) => {
+    const authResult = await auth.api.getSession({
+      headers: request.headers,
+    })
+
+    if (!authResult) {
+      return new Response(
+        JSON.stringify({
+          error: 'Unauthorized',
+          message: 'Please sign in to access this resource',
+        }),
+        {
+          status: 401,
+          headers: { 'Content-Type': 'application/json' },
+        }
+      )
+    }
+
     try {
       const contentList = await db.select().from(content)
       return new Response(JSON.stringify(contentList), {
@@ -20,6 +37,23 @@ export const Route = createFileRoute('/api/content/')({
   },
 
   POST: async ({ request }) => {
+    const authResult = await auth.api.getSession({
+      headers: request.headers,
+    })
+
+    if (!authResult) {
+      return new Response(
+        JSON.stringify({
+          error: 'Unauthorized',
+          message: 'Please sign in to access this resource',
+        }),
+        {
+          status: 401,
+          headers: { 'Content-Type': 'application/json' },
+        }
+      )
+    }
+
     try {
       const body = await request.json()
       const { title, description } = body
@@ -31,8 +65,7 @@ export const Route = createFileRoute('/api/content/')({
         })
       }
 
-      // TODO: Get userId from session
-      const userId = 'temp-user-id'
+      const userId = authResult.user.id
 
       const newContent = await db
         .insert(content)
@@ -56,3 +89,4 @@ export const Route = createFileRoute('/api/content/')({
     }
   },
 })
+

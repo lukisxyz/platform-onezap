@@ -1,11 +1,14 @@
-import { createFileRoute } from '@tanstack/react-router'
+import { createAPIFileRoute } from '@tanstack/start/api'
+import { auth } from '@/lib/auth'
 
-export const Route = createFileRoute('/api/session/')({
-  GET: async () => {
+export const APIRoute = createAPIFileRoute('/api/session')({
+  GET: async ({ request }) => {
     try {
-      // TODO: Implement session retrieval using better-auth
-      // For now, return null to indicate no active session
-      return new Response(JSON.stringify(null), {
+      const session = await auth.api.getSession({
+        headers: request.headers,
+      })
+
+      return new Response(JSON.stringify(session), {
         status: 200,
         headers: { 'Content-Type': 'application/json' },
       })

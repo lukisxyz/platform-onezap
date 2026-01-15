@@ -13,14 +13,18 @@ import { useAccount } from 'wagmi'
 import { useCreateContent } from '@/api/content'
 import { toast } from 'sonner'
 import { createContentSchema } from '@/api/content/types'
+import { ProtectedRoute } from '@/components/protected-route'
 
 export const Route = createFileRoute('/content/create')({
-  component: CreateContent,
+  component: () => (
+    <ProtectedRoute>
+      <CreateContent />
+    </ProtectedRoute>
+  ),
 })
 
 function CreateContent() {
   const navigate = useNavigate()
-  const { isConnected } = useAccount()
   const createContent = useCreateContent()
 
   const {

@@ -9,23 +9,22 @@ import { useAccount } from 'wagmi'
 import { useContentList } from '@/api/content'
 import { useCreateContent, useDeleteContent } from '@/api/content'
 import { toast } from 'sonner'
+import { ProtectedRoute } from '@/components/protected-route'
 
 export const Route = createFileRoute('/dashboard')({
-  component: Dashboard,
+  component: () => (
+    <ProtectedRoute>
+      <Dashboard />
+    </ProtectedRoute>
+  ),
 })
 
 function Dashboard() {
   const navigate = useNavigate()
-  const { address, isConnected } = useAccount()
+  const { address } = useAccount()
   const { data: content, isLoading, error } = useContentList()
   const createContent = useCreateContent()
   const deleteContent = useDeleteContent()
-
-  // Redirect to sign-in if not connected
-  if (!isConnected) {
-    navigate({ to: '/sign-in' })
-    return null
-  }
 
   const handleCreateContent = async () => {
     try {

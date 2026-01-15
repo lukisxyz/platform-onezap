@@ -1,10 +1,28 @@
-import { createFileRoute } from '@tanstack/react-router'
+import { createAPIFileRoute } from '@tanstack/start/api'
 import { db } from '@/lib/db'
 import { content } from '@/lib/schema'
 import { eq } from 'drizzle-orm'
+import { auth } from '@/lib/auth'
 
-export const Route = createFileRoute('/api/content/$id')({
-  GET: async ({ params }) => {
+export const APIRoute = createAPIFileRoute('/api/content/$id')({
+  GET: async ({ params, request }) => {
+    const authResult = await auth.api.getSession({
+      headers: request.headers,
+    })
+
+    if (!authResult) {
+      return new Response(
+        JSON.stringify({
+          error: 'Unauthorized',
+          message: 'Please sign in to access this resource',
+        }),
+        {
+          status: 401,
+          headers: { 'Content-Type': 'application/json' },
+        }
+      )
+    }
+
     try {
       const { id } = params
       const result = await db.select().from(content).where(eq(content.id, id))
@@ -29,6 +47,23 @@ export const Route = createFileRoute('/api/content/$id')({
   },
 
   PUT: async ({ params, request }) => {
+    const authResult = await auth.api.getSession({
+      headers: request.headers,
+    })
+
+    if (!authResult) {
+      return new Response(
+        JSON.stringify({
+          error: 'Unauthorized',
+          message: 'Please sign in to access this resource',
+        }),
+        {
+          status: 401,
+          headers: { 'Content-Type': 'application/json' },
+        }
+      )
+    }
+
     try {
       const { id } = params
       const body = await request.json()
@@ -63,7 +98,24 @@ export const Route = createFileRoute('/api/content/$id')({
     }
   },
 
-  DELETE: async ({ params }) => {
+  DELETE: async ({ params, request }) => {
+    const authResult = await auth.api.getSession({
+      headers: request.headers,
+    })
+
+    if (!authResult) {
+      return new Response(
+        JSON.stringify({
+          error: 'Unauthorized',
+          message: 'Please sign in to access this resource',
+        }),
+        {
+          status: 401,
+          headers: { 'Content-Type': 'application/json' },
+        }
+      )
+    }
+
     try {
       const { id } = params
 
@@ -87,3 +139,4 @@ export const Route = createFileRoute('/api/content/$id')({
     }
   },
 })
+

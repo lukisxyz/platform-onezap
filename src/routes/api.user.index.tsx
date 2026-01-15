@@ -1,11 +1,21 @@
-import { createFileRoute } from '@tanstack/react-router'
+import { createAPIFileRoute } from '@tanstack/start/api'
+import { auth } from '@/lib/auth'
 
-export const Route = createFileRoute('/api/user/')({
-  GET: async () => {
+export const APIRoute = createAPIFileRoute('/api/user')({
+  GET: async ({ request }) => {
     try {
-      // TODO: Implement user retrieval using better-auth
-      // For now, return null to indicate no active user
-      return new Response(JSON.stringify(null), {
+      const session = await auth.api.getSession({
+        headers: request.headers,
+      })
+
+      if (!session) {
+        return new Response(JSON.stringify(null), {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' },
+        })
+      }
+
+      return new Response(JSON.stringify(session.user), {
         status: 200,
         headers: { 'Content-Type': 'application/json' },
       })
@@ -17,3 +27,4 @@ export const Route = createFileRoute('/api/user/')({
     }
   },
 })
+
