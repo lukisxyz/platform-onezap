@@ -1,18 +1,24 @@
-import { useEffect, ReactNode } from 'react'
+import { useEffect, ReactNode, useState } from 'react'
 import { useNavigate } from '@tanstack/react-router'
 import { useAccount } from 'wagmi'
 
 export function ProtectedRoute({ children }: { children: ReactNode }) {
   const navigate = useNavigate()
   const { isConnected } = useAccount()
+  const [hydrated, setHydrated] = useState(false)
 
   useEffect(() => {
-    if (!isConnected) {
+    setHydrated(true)
+  }, [])
+
+  useEffect(() => {
+    if (hydrated && !isConnected) {
       navigate({ to: '/sign-in' })
     }
-  }, [isConnected, navigate])
+  }, [hydrated, isConnected, navigate])
 
-  if (!isConnected) {
+  // Show nothing during SSR and initial render to prevent hydration mismatch
+  if (!hydrated || !isConnected) {
     return null
   }
 

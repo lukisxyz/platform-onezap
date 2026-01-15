@@ -9,7 +9,6 @@ import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { Label } from '@/components/ui/label'
 import { Zap, ArrowLeft, Save } from 'lucide-react'
-import { useAccount } from 'wagmi'
 import { useCreateContent } from '@/api/content'
 import { toast } from 'sonner'
 import { createContentSchema } from '@/api/content/types'
@@ -40,12 +39,6 @@ function CreateContent() {
     },
   })
 
-  // Redirect to sign-in if not connected
-  if (!isConnected) {
-    navigate({ to: '/sign-in' })
-    return null
-  }
-
   const onSubmit = async (data: z.infer<typeof createContentSchema>) => {
     try {
       await createContent.mutateAsync(data)
@@ -58,13 +51,13 @@ function CreateContent() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-50 via-white to-blue-50">
+    <div className="min-h-screen bg-white">
       {/* Header */}
       <header className="border-b bg-white">
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <Zap className="h-8 w-8 text-purple-600" />
+              <Zap className="h-8 w-8 text-blue-600" />
               <span className="text-2xl font-bold text-gray-900">OneZap</span>
             </div>
             <Button
@@ -117,7 +110,7 @@ function CreateContent() {
               <div className="flex gap-4">
                 <Button
                   type="submit"
-                  className="flex-1 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700"
+                  className="flex-1 bg-blue-600 hover:bg-blue-700"
                   disabled={isSubmitting || createContent.isPending}
                 >
                   <Save className="h-4 w-4 mr-2" />

@@ -3,8 +3,11 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Zap, ArrowLeft } from 'lucide-react'
 import { useNavigate } from '@tanstack/react-router'
-import { useAccount, useConnect, useDisconnect } from 'wagmi'
-import { injected } from 'wagmi/connectors'
+import { useAccount, useConnect, useDisconnect, useConnectors, type Connector, useSignMessage } from 'wagmi'
+import { useSiweNonce, useSiweVerify } from '@/api/siwe'
+import { config } from '@/lib/wagmi'
+import { toast } from 'sonner'
+import * as React from 'react'
 
 export const Route = createFileRoute('/sign-in')({
   component: SignIn,
@@ -13,22 +16,26 @@ export const Route = createFileRoute('/sign-in')({
 function SignIn() {
   const navigate = useNavigate()
   const { address, isConnected } = useAccount()
-  const { connect, isPending, error } = useConnect({
-    connector: injected(),
-  })
+  const { connect } = useConnect()
   const { disconnect } = useDisconnect()
+  const { signMessageAsync } = useSignMessage()
+  const connectors = useConnectors()
+  const nonceQuery = useSiweNonce(address)
+  const verifyMutation = useSiweVerify()
 
-  const handleSignIn = async () => {
+  const [isAuthenticating, setIsAuthenticating] = React.useState(false)
+  const [hydrated, setHydrated] = React.useState(false)
+
+  // Prevent hydration mismatch by only rendering wallet UI after client mount
+  React.useEffect(() => {
+    setHydrated(true)
+  }, [])
+
+  const handleConnect = async (connector: Connector) => {
     try {
-      if (!isConnected) {
-        connect()
-      } else {
-        // TODO: Implement SIWE sign-in with better-auth
-        // For now, just redirect to dashboard
-        navigate({ to: '/dashboard' })
-      }
+      connect({ connector })
     } catch (error) {
-      console.error('Sign in failed:', error)
+      toast.error('Failed to connect wallet')
     }
   }
 
@@ -36,8 +43,38 @@ function SignIn() {
     disconnect()
   }
 
+  const handleSignIn = async () => {
+    if (!address) return
+
+    try {
+      setIsAuthenticating(true)
+
+      const message = `OneZap Platform wants you to sign in with your Ethereum account:
+${address}. By signing this message, you agree to the Terms of Service and Privacy Policy of OneZap platform.}`
+
+      // Step 3: Sign the message with wallet
+      const signature = await signMessageAsync({ message })
+
+      // Step 4: Verify signature via API
+      const result = await verifyMutation.mutateAsync({
+        message,
+        signature,
+        walletAddress: address,
+      })
+
+      if (result.verified) {
+        toast.success('Successfully signed in!')
+        navigate({ to: '/dashboard' })
+      }
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to sign in. Please try again.')
+    } finally {
+      setIsAuthenticating(false)
+    }
+  }
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-50 via-white to-blue-50 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-white flex items-center justify-center p-4">
       <Card className="w-full max-w-md">
         <CardHeader className="space-y-1">
           <div className="flex items-center gap-2 mb-4">
@@ -52,7 +89,7 @@ function SignIn() {
             </Button>
           </div>
           <div className="flex items-center gap-2">
-            <Zap className="h-8 w-8 text-purple-600" />
+            <Zap className="h-8 w-8 text-blue-600" />
             <span className="text-2xl font-bold">OneZap</span>
           </div>
           <CardTitle className="text-2xl mt-4">Sign In</CardTitle>
@@ -61,17 +98,29 @@ function SignIn() {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          {isConnected && address ? (
+          {!hydrated ? (
+            // Show loading during SSR and initial client render to prevent hydration mismatch
+            <div className="space-y-3">
+              <div className="animate-pulse">
+                <div className="h-10 bg-gray-200 rounded mb-3"></div>
+                <div className="h-10 bg-gray-200 rounded mb-3"></div>
+                <div className="h-10 bg-gray-200 rounded"></div>
+              </div>
+            </div>
+          ) : isConnected && address ? (
             <div className="space-y-4">
               <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
                 <p className="text-sm text-green-800 font-medium mb-1">Wallet Connected</p>
                 <p className="text-xs text-green-700 font-mono">{address}</p>
               </div>
               <Button
-                className="w-full bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700"
+                className="w-full bg-blue-600 hover:bg-blue-700"
                 onClick={handleSignIn}
+                disabled={isAuthenticating || verifyMutation.isPending}
               >
-                Continue to Dashboard
+                {isAuthenticating || verifyMutation.isPending
+                  ? 'Authenticating...'
+                  : 'Sign In with Ethereum'}
               </Button>
               <Button
                 variant="outline"
@@ -82,27 +131,56 @@ function SignIn() {
               </Button>
             </div>
           ) : (
-            <div className="space-y-4">
-              <Button
-                className="w-full bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700"
-                onClick={handleSignIn}
-                disabled={isPending}
-              >
-                {isPending ? 'Connecting...' : 'Connect Wallet'}
-              </Button>
-              <p className="text-xs text-gray-500 text-center">
+            <div className="space-y-3">
+              <p className="text-sm text-gray-600 font-medium">Select a wallet:</p>
+              {connectors.map((connector) => (
+                <WalletOption key={connector.uid} connector={connector} onClick={handleConnect} />
+              ))}
+              <p className="text-xs text-gray-500 text-center pt-2">
                 By connecting, you agree to our Terms of Service and Privacy Policy
               </p>
-            </div>
-          )}
-
-          {error && (
-            <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
-              <p className="text-sm text-red-800">{error.message}</p>
             </div>
           )}
         </CardContent>
       </Card>
     </div>
+  )
+}
+
+function WalletOption({
+  connector,
+  onClick,
+}: {
+  connector: Connector
+  onClick: (connector: Connector) => void
+}) {
+  const [ready, setReady] = React.useState(false)
+  const [hydrated, setHydrated] = React.useState(false)
+
+  React.useEffect(() => {
+    setHydrated(true)
+  }, [])
+
+  React.useEffect(() => {
+    if (hydrated) {
+      ; (async () => {
+        const provider = await connector.getProvider()
+        setReady(!!provider)
+      })()
+    }
+  }, [connector, hydrated])
+
+  return (
+    <Button
+      variant="outline"
+      className="w-full justify-start"
+      disabled={!ready || !hydrated}
+      onClick={() => onClick(connector)}
+    >
+      <div className="flex items-center gap-3">
+        <div className="w-6 h-6 bg-blue-600 rounded" />
+        <span className="font-medium">{connector.name}</span>
+      </div>
+    </Button>
   )
 }
