@@ -1,7 +1,13 @@
 import { authClient } from '@/lib/auth.client';
 import { config } from '@/lib/wagmi';
+import { mantleSepoliaTestnet } from 'wagmi/chains';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { Address } from 'viem';
+
+// Validate that we're configured for Mantle Sepolia
+if (config.getClient().chain.id !== mantleSepoliaTestnet.id) {
+  throw new Error(`Invalid chain configuration. Expected chainId: ${mantleSepoliaTestnet.id}, got: ${config.getClient().chain.id}`);
+}
 
 export interface SiweNonceResponse {
   nonce: string;

@@ -9,8 +9,11 @@ import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { Label } from '@/components/ui/label'
 import { Checkbox } from '@/components/ui/checkbox'
-import { Zap, ArrowLeft, Save } from 'lucide-react'
+import { Zap, ArrowLeft, Save, AlertCircle, AlertTriangle } from 'lucide-react'
 import { useCreateContent } from '@/api/content'
+import { useAccount, useSwitchChain } from 'wagmi'
+import { mantleSepoliaTestnet } from 'wagmi/chains'
+import { isCreatorOnChain } from '@/lib/contracts'
 import { toast } from 'sonner'
 import { createContentSchema, type CreateContent } from '@/api/content/types'
 
@@ -23,6 +26,13 @@ export const Route = createFileRoute('/content/create')({
 function CreateContent() {
   const navigate = useNavigate()
   const createContent = useCreateContent()
+  const { address, isConnected, chainId } = useAccount()
+  const { switchChain } = useSwitchChain()
+
+  const [isRegisteredOnChain, setIsRegisteredOnChain] = React.useState(false)
+  const [isCheckingRegistration, setIsCheckingRegistration] = React.useState(true)
+
+  const isCorrectNetwork = chainId === mantleSepoliaTestnet.id
 
   const {
     register,
@@ -41,6 +51,36 @@ function CreateContent() {
       isPremium: false,
     },
   })
+
+  // Auto-switch to Mantle Sepolia when on wrong network
+  React.useEffect(() => {
+    if (isConnected && !isCorrectNetwork) {
+      switchChain({ chainId: mantleSepoliaTestnet.id })
+      toast.error(`Wrong network. Please switch to ${mantleSepoliaTestnet.name}`)
+    }
+  }, [isConnected, isCorrectNetwork, switchChain])
+
+  // Check if user is registered on-chain
+  React.useEffect(() => {
+    async function checkRegistration() {
+      if (address && isConnected && isCorrectNetwork) {
+        setIsCheckingRegistration(true)
+        try {
+          const result = await isCreatorOnChain(address)
+          setIsRegisteredOnChain(result)
+        } catch (err) {
+          console.error('Error checking on-chain registration:', err)
+          setIsRegisteredOnChain(false)
+        } finally {
+          setIsCheckingRegistration(false)
+        }
+      } else {
+        setIsRegisteredOnChain(false)
+        setIsCheckingRegistration(false)
+      }
+    }
+    checkRegistration()
+  }, [address, isConnected, isCorrectNetwork])
 
   const contentValue = useWatch({
     control,
@@ -97,6 +137,59 @@ function CreateContent() {
 
       {/* Main Content */}
       <main className="container mx-auto px-4 py-8 max-w-2xl">
+        {/* Network Warning */}
+        {!isCorrectNetwork && (
+          <div className="mb-6">
+            <div className="bg-red-50 border-2 border-red-300 rounded-lg p-4">
+              <div className="flex items-start gap-3">
+                <AlertTriangle className="h-6 w-6 text-red-600 mt-0.5" />
+                <div className="flex-1">
+                  <p className="text-sm font-bold text-red-900">
+                    Wrong Network Detected
+                  </p>
+                  <p className="text-sm text-red-700 mt-1">
+                    You are currently on Chain ID: {chainId}. Please switch to <strong>{mantleSepoliaTestnet.name}</strong> (Chain ID: {mantleSepoliaTestnet.id}) to continue.
+                  </p>
+                  <Button
+                    size="sm"
+                    variant="destructive"
+                    onClick={() => switchChain({ chainId: mantleSepoliaTestnet.id })}
+                    className="mt-3"
+                  >
+                    Switch to {mantleSepoliaTestnet.name}
+                  </Button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* On-chain registration warning */}
+        {isCorrectNetwork && !isCheckingRegistration && !isRegisteredOnChain && (
+          <div className="mb-6">
+            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+              <div className="flex items-start gap-3">
+                <AlertCircle className="h-5 w-5 text-yellow-600 mt-0.5" />
+                <div>
+                  <p className="text-sm font-medium text-yellow-900">
+                    Blockchain Registration Required
+                  </p>
+                  <p className="text-sm text-yellow-700 mt-1">
+                    You need to register as a content creator on the blockchain before creating content.
+                    {' '}
+                    <button
+                      onClick={() => navigate({ to: '/profile/edit' })}
+                      className="underline hover:no-underline font-medium"
+                    >
+                      Register now
+                    </button>
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
         <Card>
           <CardHeader>
             <CardTitle>Create New Content</CardTitle>
@@ -164,10 +257,14 @@ function CreateContent() {
                 <Button
                   type="submit"
                   className="flex-1 bg-blue-600 hover:bg-blue-700"
-                  disabled={isSubmitting || createContent.isPending}
+                  disabled={isSubmitting || createContent.isPending || (!isRegisteredOnChain && !isCheckingRegistration)}
                 >
                   <Save className="h-4 w-4 mr-2" />
-                  {isSubmitting || createContent.isPending ? 'Saving...' : 'Save'}
+                  {isSubmitting || createContent.isPending
+                    ? 'Saving...'
+                    : !isRegisteredOnChain && !isCheckingRegistration
+                      ? 'Register on Blockchain First'
+                      : 'Save'}
                 </Button>
                 <Button
                   type="button"

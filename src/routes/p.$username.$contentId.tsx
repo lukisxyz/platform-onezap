@@ -1,16 +1,22 @@
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
 import { Zap, ArrowLeft, Calendar, Lock, Crown } from 'lucide-react'
 import { useQuery } from '@tanstack/react-query'
+import { useAccount, useWaitForTransactionReceipt, useSwitchChain } from 'wagmi'
+import { mantleSepoliaTestnet } from 'wagmi/chains'
+import { subscribeToCreator, getCreatorOnChain, approveUSDTForSubscription, checkUSDTAllowance } from '@/lib/contracts'
+import { toast } from 'sonner'
+import React from 'react'
 
 interface Creator {
   id: string
   username: string
   fullname: string | null
   image: string | null
+  walletAddress?: string | null
 }
 
 interface ContentItem {
@@ -34,8 +40,13 @@ export const Route = createFileRoute('/p/$username/$contentId')({
 function ContentPage() {
   const navigate = useNavigate()
   const { username, contentId } = Route.useParams()
+  const { address, isConnected, chainId } = useAccount()
+  const { switchChain } = useSwitchChain()
+  const [isSubscribing, setIsSubscribing] = React.useState(false)
+  const [txHash, setTxHash] = React.useState<`0x${string}` | null>(null)
+  const [isApproval, setIsApproval] = React.useState(false)
 
-  const { data, isLoading, error } = useQuery<ContentItem>({
+  const { data, isLoading, error, refetch } = useQuery<ContentItem>({
     queryKey: ['content', contentId],
     queryFn: async () => {
       const response = await fetch(`/api/content/${contentId}`)
@@ -46,6 +57,108 @@ function ContentPage() {
     },
     enabled: !!contentId,
   })
+
+  const isCorrectNetwork = chainId === mantleSepoliaTestnet.id
+
+  // Wait for transaction confirmation
+  useWaitForTransactionReceipt({
+    hash: txHash || undefined,
+    onSuccess: () => {
+      if (isApproval) {
+        // Approval confirmed, now subscribe
+        toast.success('Approval confirmed! Starting subscription...')
+        setIsApproval(false)
+
+        // Proceed with subscription if we have creator address
+        if (data?.creator?.walletAddress) {
+          const creatorWalletAddress = data.creator.walletAddress as `0x${string}`
+          subscribeToCreator(creatorWalletAddress)
+            .then((hash) => {
+              setTxHash(hash)
+              toast.success('Subscription transaction submitted!')
+            })
+            .catch((error) => {
+              toast.error(`Subscription failed: ${error.message}`)
+              setIsSubscribing(false)
+            })
+        }
+      } else {
+        // Subscription confirmed
+        toast.success('Successfully subscribed! Refreshing content...')
+        setTxHash(null)
+        setIsSubscribing(false)
+        refetch() // Refetch content to check access
+      }
+    },
+    onError: (error) => {
+      if (isApproval) {
+        toast.error(`Approval failed: ${error.message}`)
+        setIsApproval(false)
+      } else {
+        toast.error(`Subscription failed: ${error.message}`)
+      }
+      setTxHash(null)
+      setIsSubscribing(false)
+    },
+  })
+
+  const handleSubscribe = async () => {
+    if (!isConnected || !address) {
+      toast.error('Please connect your wallet first')
+      return
+    }
+
+    if (!isCorrectNetwork) {
+      switchChain({ chainId: mantleSepoliaTestnet.id })
+      toast.error(`Wrong network. Please switch to ${mantleSepoliaTestnet.name}`)
+      return
+    }
+
+    if (!data?.creator?.walletAddress) {
+      toast.error('Creator wallet address not available')
+      return
+    }
+
+    // Use the creator's wallet address from the database
+    const creatorWalletAddress = data.creator.walletAddress as `0x${string}`
+
+    // Validate wallet address format
+    if (!creatorWalletAddress || !creatorWalletAddress.startsWith('0x')) {
+      toast.error('Invalid creator wallet address')
+      return
+    }
+
+    // Check if user is trying to subscribe to themselves
+    if (creatorWalletAddress.toLowerCase() === address.toLowerCase()) {
+      toast.error('You cannot subscribe to yourself')
+      return
+    }
+
+    setIsSubscribing(true)
+    try {
+      // Check USDT allowance
+      const allowance = await checkUSDTAllowance(address)
+      const requiredAmount = BigInt(100 * 10 ** 6) // 100 USDT with 6 decimals
+
+      if (allowance < requiredAmount) {
+        // Need to approve USDT first
+        setIsApproval(true)
+        toast.info('Approving 100 USDT for subscription...')
+        const approveHash = await approveUSDTForSubscription(requiredAmount)
+        setTxHash(approveHash)
+        toast.success('Approval transaction submitted!')
+        return
+      }
+
+      // Allowance is sufficient, proceed with subscription
+      const hash = await subscribeToCreator(creatorWalletAddress)
+      setTxHash(hash)
+      toast.success('Subscription transaction submitted! Please wait for confirmation.')
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to subscribe. Please try again.')
+      setIsSubscribing(false)
+    }
+  }
 
   if (isLoading) {
     return (
@@ -231,13 +344,13 @@ function ContentPage() {
                           <Button
                             size="lg"
                             className="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-8"
-                            onClick={() => {
-                              // TODO: Implement subscription logic
-                              console.log('Subscribe to creator:', creator.username)
-                            }}
+                            onClick={handleSubscribe}
+                            disabled={isSubscribing}
                           >
                             <Crown className="h-5 w-5 mr-2" />
-                            Subscribe to Read
+                            {isSubscribing
+                              ? (isApproval ? 'Approving USDT...' : 'Subscribing...')
+                              : 'Subscribe to Read'}
                           </Button>
                         </div>
                       </div>
