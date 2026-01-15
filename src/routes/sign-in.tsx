@@ -7,6 +7,7 @@ import { useAccount, useConnect, useDisconnect, useConnectors, type Connector, u
 import { useSiweNonce, useSiweVerify } from '@/api/siwe'
 import { config } from '@/lib/wagmi'
 import { toast } from 'sonner'
+import { createSiweMessage } from 'viem/siwe'
 import * as React from 'react'
 
 export const Route = createFileRoute('/sign-in')({
@@ -49,8 +50,23 @@ function SignIn() {
     try {
       setIsAuthenticating(true)
 
-      const message = `OneZap Platform wants you to sign in with your Ethereum account:
-${address}. By signing this message, you agree to the Terms of Service and Privacy Policy of OneZap platform.}`
+      // Step 1: Get nonce from server
+      const nonceResponse = await nonceQuery.refetch();
+
+      // Step 2: Create SIWE message with ToS agreement
+      const uri = window.location.origin
+      const chainId = config.getClient().chain.id
+
+      const message = createSiweMessage({
+        address,
+        chainId,
+        domain: window.location.hostname,
+        nonce: nonceResponse.data?.nonce || '',
+        uri,
+        version: '1',
+        statement: 'By signing this message, you agree to the Terms of Service and Privacy Policy of OneZap platform.',
+        issuedAt: new Date().toISOString(),
+      })
 
       // Step 3: Sign the message with wallet
       const signature = await signMessageAsync({ message })
