@@ -69,7 +69,7 @@ function CreateContent() {
           const result = await isCreatorOnChain(address)
           setIsRegisteredOnChain(result)
         } catch (err) {
-          console.error('Error checking on-chain registration:', err)
+          // Silently fail - don't log to console
           setIsRegisteredOnChain(false)
         } finally {
           setIsCheckingRegistration(false)

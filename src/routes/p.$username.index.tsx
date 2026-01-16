@@ -5,8 +5,11 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
-import { Zap, ArrowLeft } from 'lucide-react'
+import { Zap, ArrowLeft, UserMinus } from 'lucide-react'
 import { useUserWithContent, UserContentItem } from '@/api/user/profile'
+import { useAccount } from 'wagmi'
+import { hasAccessToCreator, getUserSubscription, requestWithdrawal } from '@/lib/contracts'
+import { toast } from 'sonner'
 
 export const Route = createFileRoute('/p/$username/')({
   component: () => <UserProfilePage />,
@@ -15,13 +18,85 @@ export const Route = createFileRoute('/p/$username/')({
 function UserProfilePage() {
   const navigate = useNavigate()
   const { username } = Route.useParams()
+  const { address, isConnected } = useAccount()
 
   // Use state to manage cursor for pagination
   const [cursor, setCursor] = React.useState<string | undefined>(undefined)
   const [allContent, setAllContent] = React.useState<UserContentItem[]>([])
   const [hasMore, setHasMore] = React.useState(true)
+  const [isSubscribed, setIsSubscribed] = React.useState(false)
+  const [subscriptionId, setSubscriptionId] = React.useState<bigint | null>(null)
+  const [isUnsubscribing, setIsUnsubscribing] = React.useState(false)
 
   const { data, isLoading, error } = useUserWithContent(username!, cursor)
+
+  // Check if user is subscribed to this creator
+  React.useEffect(() => {
+    const checkSubscription = async () => {
+      if (!isConnected || !address || !data?.user?.walletAddress) {
+        setIsSubscribed(false)
+        setSubscriptionId(null)
+        return
+      }
+
+      try {
+        const result = await getUserSubscription(address as `0x${string}`, data.user.walletAddress as `0x${string}`)
+        setIsSubscribed(result.exists)
+        setSubscriptionId(result.subscriptionId || null)
+      } catch (error) {
+        // Silently fail - don't log to console
+        setIsSubscribed(false)
+        setSubscriptionId(null)
+      }
+    }
+
+    checkSubscription()
+  }, [isConnected, address, data?.user?.walletAddress])
+
+  // Handle unsubscribe
+  const handleUnsubscribe = async () => {
+    if (!isConnected || !address) {
+      toast.error('Please connect your wallet first')
+      return
+    }
+
+    if (!subscriptionId) {
+      toast.error('No subscription found')
+      return
+    }
+
+    setIsUnsubscribing(true)
+    try {
+      // 0 = COMPLETE_EPOCH (after lock period), 1 = IMMEDIATE (with penalty)
+      const withdrawalType = 1 // Immediate withdrawal
+      const hash = await requestWithdrawal(subscriptionId, withdrawalType)
+
+      toast.success('Withdrawal request submitted!')
+
+      // Show info about withdrawal
+      toast.info('💡 You can withdraw after the lock period (or immediately with penalty)', {
+        duration: 8000,
+      })
+
+      // Update UI
+      setIsSubscribed(false)
+      setSubscriptionId(null)
+    } catch (error: any) {
+      const message = error.message || 'Failed to request withdrawal'
+
+      if (message.includes('WithdrawalAlreadyRequested')) {
+        toast.error('❌ Withdrawal already requested for this subscription')
+      } else if (message.includes('NotSubscriptionOwner')) {
+        toast.error('❌ You are not the owner of this subscription')
+      } else if (message.includes('SubscriptionNotActive')) {
+        toast.error('❌ Subscription is not active')
+      } else {
+        toast.error(`❌ Failed to unsubscribe: ${message}`)
+      }
+    } finally {
+      setIsUnsubscribing(false)
+    }
+  }
 
   // Update content when data changes
   React.useEffect(() => {
@@ -143,6 +218,21 @@ function UserProfilePage() {
                 <p className="text-gray-600 mb-2">@{user.username}</p>
                 {user.bio && (
                   <p className="text-gray-700 mb-4">{user.bio}</p>
+                )}
+
+                {/* Show unsubscribe button if user is subscribed to this creator */}
+                {isConnected && address && data?.user?.walletAddress && address.toLowerCase() !== data.user.walletAddress.toLowerCase() && isSubscribed && (
+                  <div className="mt-4">
+                    <Button
+                      variant="destructive"
+                      onClick={handleUnsubscribe}
+                      disabled={isUnsubscribing}
+                      className="bg-red-600 hover:bg-red-700"
+                    >
+                      <UserMinus className="h-4 w-4 mr-2" />
+                      {isUnsubscribing ? 'Unsubscribing...' : 'Unsubscribe'}
+                    </Button>
+                  </div>
                 )}
               </div>
             </div>

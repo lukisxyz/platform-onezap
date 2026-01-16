@@ -72,6 +72,7 @@ export interface UserWithContent {
   username: string
   bio: string
   image?: string | null
+  walletAddress?: string | null
 }
 
 export interface UserContentItem {

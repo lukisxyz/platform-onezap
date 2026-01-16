@@ -81,7 +81,7 @@ function ProfileEdit() {
           const result = await isCreatorOnChain(address)
           setIsAlreadyRegistered(result)
         } catch (err) {
-          console.error('Error checking on-chain registration:', err)
+          // Silently fail - don't log to console
         }
       }
     }
@@ -116,7 +116,6 @@ function ProfileEdit() {
           setTxHash(hash)
           toast.success('Profile updated and transaction submitted! Check your wallet for confirmation.')
         } catch (error: any) {
-          console.error('Blockchain registration error:', error)
           toast.error(error.message || 'Profile updated but blockchain registration failed. Please try again.')
           setIsRegistering(false)
           return

@@ -125,54 +125,9 @@ const SUBSCRIPTION_STATUS = {
 
 // Helper function to check if a wallet has access to premium content via subscription
 // Returns true if the wallet has an active subscription to the creator
+// DEPRECATED: Use hasAccessToCreator instead
 export async function hasPremiumAccess(subscriberAddress: Address, creatorAddress: Address): Promise<boolean> {
-  try {
-    // Get all subscription IDs for the subscriber
-    const subscriptionIds = await readContract(config, {
-      address: CONTRACTS.SUBSCRIPTION,
-      abi: SubscriptionAbi,
-      functionName: 'getActiveSubscriptions',
-      args: [subscriberAddress],
-    })
-
-    // If no subscriptions, return false
-    if (!subscriptionIds || subscriptionIds.length === 0) {
-      return false
-    }
-
-    // Check each subscription to see if it's for this creator and still active
-    for (const subscriptionId of subscriptionIds) {
-      const subscriptionData = await readContract(config, {
-        address: CONTRACTS.SUBSCRIPTION,
-        abi: SubscriptionAbi,
-        functionName: 'getSubscription',
-        args: [subscriptionId],
-      })
-
-      // subscriptionData is a tuple with fields:
-      // [id, subscriber, creator, amount, usdyAmount, startTime, lastYieldAccrual, status, withdrawalType, withdrawalRequestTime]
-      const [, , creator, , , , , status] = subscriptionData as [
-        bigint,
-        Address,
-        Address,
-        bigint,
-        bigint,
-        bigint,
-        bigint,
-        number
-      ]
-
-      // Check if this subscription is for the creator and status is ACTIVE (0)
-      // ACTIVE = 0, WITHDRAWAL_REQUESTED = 1, WITHDRAWAL_PROCESSED = 2
-      if (creator.toLowerCase() === creatorAddress.toLowerCase() && status === SUBSCRIPTION_STATUS.ACTIVE) {
-        return true
-      }
-    }
-
-    return false
-  } catch (error) {
-    return false
-  }
+  return hasAccessToCreator(creatorAddress)
 }
 
 // Helper function to subscribe to a creator
@@ -210,4 +165,95 @@ export async function checkUSDTAllowance(ownerAddress: Address): Promise<bigint>
   })
 
   return allowance as bigint
+}
+
+// Withdrawal type enum (from Solidity contract)
+const WITHDRAWAL_TYPE = {
+  COMPLETE_EPOCH: 0,
+  IMMEDIATE: 1,
+} as const
+
+// Helper function to check if user has access to a creator
+export async function hasAccessToCreator(creatorAddress: Address): Promise<boolean> {
+  const hasAccess = await readContract(config, {
+    address: CONTRACTS.SUBSCRIPTION,
+    abi: SubscriptionAbi,
+    functionName: 'hasAccessToCreator',
+    args: [creatorAddress],
+  })
+
+  return hasAccess as boolean
+}
+
+// Helper function to get user's subscription to a specific creator
+export async function getUserSubscription(subscriberAddress: Address, creatorAddress: Address): Promise<{
+  subscriptionId?: bigint
+  status?: number
+  amount?: bigint
+  exists: boolean
+}> {
+  try {
+    // First check if user has access using the more efficient function
+    const hasAccess = await hasAccessToCreator(creatorAddress)
+    if (!hasAccess) {
+      return { exists: false }
+    }
+
+    // Get active subscription IDs
+    const subscriptionIds = await readContract(config, {
+      address: CONTRACTS.SUBSCRIPTION,
+      abi: SubscriptionAbi,
+      functionName: 'getActiveSubscriptions',
+      args: [subscriberAddress],
+    }) as bigint[]
+
+    if (!subscriptionIds || subscriptionIds.length === 0) {
+      return { exists: false }
+    }
+
+    // Check each subscription to find one for this creator
+    for (const subscriptionId of subscriptionIds) {
+      const subscriptionData = await readContract(config, {
+        address: CONTRACTS.SUBSCRIPTION,
+        abi: SubscriptionAbi,
+        functionName: 'getSubscription',
+        args: [subscriptionId],
+      })
+
+      // Handle both array and object returns
+      let subAddr, subCreator, amount, status
+      if (Array.isArray(subscriptionData)) {
+        [, subAddr, subCreator, amount, , , , , status] = subscriptionData
+      } else {
+        ({ subscriber: subAddr, creator: subCreator, amount, status } = subscriptionData)
+      }
+
+      // Check if this subscription is for the creator and is ACTIVE
+      if (subCreator.toLowerCase() === creatorAddress.toLowerCase() && status === SUBSCRIPTION_STATUS.ACTIVE) {
+        return {
+          subscriptionId,
+          status,
+          amount,
+          exists: true,
+        }
+      }
+    }
+
+    return { exists: false }
+  } catch (error) {
+    // Silently return false on error - don't log to console
+    return { exists: false }
+  }
+}
+
+// Helper function to request withdrawal (unsubscribe)
+export async function requestWithdrawal(subscriptionId: bigint, withdrawalType: number = 0): Promise<`0x${string}`> {
+  const hash = await writeContract(config, {
+    address: CONTRACTS.SUBSCRIPTION,
+    abi: SubscriptionAbi,
+    functionName: 'requestWithdrawal',
+    args: [subscriptionId, withdrawalType],
+  })
+
+  return hash
 }

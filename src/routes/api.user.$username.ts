@@ -1,6 +1,6 @@
 import { createFileRoute } from '@tanstack/react-router'
 import { db } from '@/lib/db'
-import { user, content } from '@/lib/schema'
+import { user, content, walletAddress } from '@/lib/schema'
 import { eq, and, or, lt, gt } from 'drizzle-orm'
 
 export const Route = createFileRoute('/api/user/$username')({
@@ -23,7 +23,7 @@ export const Route = createFileRoute('/api/user/$username')({
             )
           }
 
-          // Fetch user by username
+          // Fetch user by username with wallet address
           const userData = await db
             .select({
               id: user.id,
@@ -33,8 +33,10 @@ export const Route = createFileRoute('/api/user/$username')({
               username: user.username,
               bio: user.bio,
               image: user.image,
+              walletAddress: walletAddress.address,
             })
             .from(user)
+            .leftJoin(walletAddress, eq(user.id, walletAddress.userId))
             .where(eq(user.username, username))
             .limit(1)
 

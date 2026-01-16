@@ -2,14 +2,19 @@ import { createFileRoute } from '@tanstack/react-router'
 import { db } from '@/lib/db'
 import { content, user, walletAddress } from '@/lib/schema'
 import { eq } from 'drizzle-orm'
-import { auth } from '@/lib/auth'
 import { Address } from 'viem'
-import { hasPremiumAccess } from '@/lib/contracts'
+import { hasAccessToCreator } from '@/lib/contracts'
 
 export const Route = createFileRoute('/api/content/$contentId')({
   server: {
     handlers: {
       GET: async ({ request, params, context }) => {
+        // Disable caching - always check from blockchain
+        const noCacheHeaders = {
+          'Cache-Control': 'no-cache, no-store, must-revalidate',
+          'Pragma': 'no-cache',
+          'Expires': '0',
+        }
         try {
           const contentId = params.contentId
 
@@ -18,15 +23,13 @@ export const Route = createFileRoute('/api/content/$contentId')({
               JSON.stringify({ error: 'Content ID is required' }),
               {
                 status: 400,
-                headers: { 'Content-Type': 'application/json' },
+                headers: { 'Content-Type': 'application/json', ...noCacheHeaders },
               }
             )
           }
 
-          // Get the current session to check if user is authenticated
-          const session = await auth.api.getSession({
-            headers: request.headers,
-          })
+          // Get wallet address from request headers (sent by wagmi client)
+          const walletAddressHeader = request.headers.get('x-wallet-address') as Address | null
 
           // Fetch content with user information and primary wallet address
           const contentData = await db
@@ -58,7 +61,7 @@ export const Route = createFileRoute('/api/content/$contentId')({
               JSON.stringify({ error: 'Content not found' }),
               {
                 status: 404,
-                headers: { 'Content-Type': 'application/json' },
+                headers: { 'Content-Type': 'application/json', ...noCacheHeaders },
               }
             )
           }
@@ -67,33 +70,32 @@ export const Route = createFileRoute('/api/content/$contentId')({
 
           // Check if content is premium
           if (contentItem.isPremium) {
-            // If premium, check if user is the creator
-            const isCreator = session?.user?.id === contentItem.userId
+            // If premium, check if user is the creator (by wallet address)
+            const userWalletAddress = walletAddressHeader as Address | null
+            const creatorWalletAddress = contentItem.creator.walletAddress as Address | null
+
+            const isCreator = userWalletAddress &&
+              creatorWalletAddress &&
+              userWalletAddress.toLowerCase() === creatorWalletAddress.toLowerCase()
 
             if (!isCreator) {
               // Not the creator - check if user has active subscription
               let hasAccess = false
 
-              // Get user's wallet address from session
-              const walletAddress = session?.user?.address as Address | undefined
-
-              if (walletAddress && contentItem.creator.walletAddress) {
-                // Get creator's wallet address from database query
-                const creatorWalletAddress = contentItem.creator.walletAddress as Address
-
+              if (userWalletAddress && creatorWalletAddress) {
                 // Validate wallet address format
                 if (!creatorWalletAddress.startsWith('0x')) {
                   return new Response(
                     JSON.stringify({ error: 'Invalid creator wallet address' }),
                     {
                       status: 500,
-                      headers: { 'Content-Type': 'application/json' },
+                      headers: { 'Content-Type': 'application/json', ...noCacheHeaders },
                     }
                   )
                 }
 
                 // Check if user has premium access via subscription
-                hasAccess = await hasPremiumAccess(walletAddress, creatorWalletAddress)
+                hasAccess = await hasAccessToCreator(creatorWalletAddress)
               }
 
               if (hasAccess) {
@@ -109,12 +111,11 @@ export const Route = createFileRoute('/api/content/$contentId')({
                     creator: contentItem.creator,
                     createdAt: contentItem.createdAt,
                     updatedAt: contentItem.updatedAt,
-                    hasAccess: true,
                     requiresSubscription: false,
                   }),
                   {
                     status: 200,
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: { 'Content-Type': 'application/json', ...noCacheHeaders },
                   }
                 )
               } else {
@@ -129,12 +130,11 @@ export const Route = createFileRoute('/api/content/$contentId')({
                     creator: contentItem.creator,
                     createdAt: contentItem.createdAt,
                     updatedAt: contentItem.updatedAt,
-                    hasAccess: false,
                     requiresSubscription: true,
                   }),
                   {
                     status: 200,
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: { 'Content-Type': 'application/json', ...noCacheHeaders },
                   }
                 )
               }
@@ -153,12 +153,11 @@ export const Route = createFileRoute('/api/content/$contentId')({
               creator: contentItem.creator,
               createdAt: contentItem.createdAt,
               updatedAt: contentItem.updatedAt,
-              hasAccess: true,
               requiresSubscription: false,
             }),
             {
               status: 200,
-              headers: { 'Content-Type': 'application/json' },
+              headers: { 'Content-Type': 'application/json', ...noCacheHeaders },
             }
           )
         } catch (error) {
@@ -166,7 +165,7 @@ export const Route = createFileRoute('/api/content/$contentId')({
             JSON.stringify({ error: 'Failed to fetch content' }),
             {
               status: 500,
-              headers: { 'Content-Type': 'application/json' },
+              headers: { 'Content-Type': 'application/json', ...noCacheHeaders },
             }
           )
         }

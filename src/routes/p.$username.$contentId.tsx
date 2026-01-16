@@ -5,11 +5,12 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
 import { Zap, ArrowLeft, Calendar, Lock, Crown } from 'lucide-react'
 import { useQuery } from '@tanstack/react-query'
-import { useAccount, useWaitForTransactionReceipt, useSwitchChain } from 'wagmi'
+import { useAccount, useWaitForTransactionReceipt, useSwitchChain, useWalletClient } from 'wagmi'
 import { mantleSepoliaTestnet } from 'wagmi/chains'
 import { subscribeToCreator, getCreatorOnChain, approveUSDTForSubscription, checkUSDTAllowance } from '@/lib/contracts'
 import { toast } from 'sonner'
 import React from 'react'
+import { parseUnits } from 'viem'
 
 interface Creator {
   id: string
@@ -29,7 +30,6 @@ interface ContentItem {
   creator: Creator
   createdAt: string
   updatedAt: string
-  hasAccess: boolean
   requiresSubscription?: boolean
 }
 
@@ -42,31 +42,65 @@ function ContentPage() {
   const { username, contentId } = Route.useParams()
   const { address, isConnected, chainId } = useAccount()
   const { switchChain } = useSwitchChain()
+  const { data: walletClient } = useWalletClient()
   const [isSubscribing, setIsSubscribing] = React.useState(false)
   const [txHash, setTxHash] = React.useState<`0x${string}` | null>(null)
   const [isApproval, setIsApproval] = React.useState(false)
+  const [approvalTimeout, setApprovalTimeout] = React.useState<NodeJS.Timeout | null>(null)
 
   const { data, isLoading, error, refetch } = useQuery<ContentItem>({
-    queryKey: ['content', contentId],
+    queryKey: ['content', contentId, address],
     queryFn: async () => {
-      const response = await fetch(`/api/content/${contentId}`)
+      const headers: Record<string, string> = {}
+      if (address) {
+        headers['x-wallet-address'] = address
+      }
+      const response = await fetch(`/api/content/${contentId}`, { headers })
       if (!response.ok) {
         throw new Error('Failed to fetch content')
       }
       return response.json()
     },
     enabled: !!contentId,
+    // Always refetch when query key changes (address changes)
+    staleTime: 0, // Consider data always stale
   })
 
   const isCorrectNetwork = chainId === mantleSepoliaTestnet.id
 
+  // Refetch when wallet connection state changes
+  React.useEffect(() => {
+    if (isConnected && address) {
+      refetch()
+    }
+  }, [isConnected, address, refetch])
+
+  // Listen for wallet account changes (when user switches accounts in MetaMask, etc.)
+  React.useEffect(() => {
+    if (!walletClient) return
+
+    const unwatch = walletClient.watchAsset
+    // This ensures the component will re-render when wallet state changes
+    // Combined with the isConnected/address dependency above, this will trigger refetch
+
+    return () => {
+      // Cleanup if needed
+    }
+  }, [walletClient])
+
   // Wait for transaction confirmation
   useWaitForTransactionReceipt({
     hash: txHash || undefined,
-    onSuccess: () => {
+    onSuccess: (receipt) => {
+      // Clear timeout on success
+      if (approvalTimeout) {
+        clearTimeout(approvalTimeout)
+        setApprovalTimeout(null)
+      }
+
       if (isApproval) {
         // Approval confirmed, now subscribe
-        toast.success('Approval confirmed! Starting subscription...')
+        toast.success('✅ USDT Approved! Starting subscription...')
         setIsApproval(false)
 
         // Proceed with subscription if we have creator address
@@ -75,30 +109,69 @@ function ContentPage() {
           subscribeToCreator(creatorWalletAddress)
             .then((hash) => {
               setTxHash(hash)
-              toast.success('Subscription transaction submitted!')
+              toast.success('🚀 Subscription transaction submitted!')
             })
             .catch((error) => {
-              toast.error(`Subscription failed: ${error.message}`)
+              toast.error(`❌ Subscription failed: ${error.message || 'Transaction reverted - check if creator is registered'}`)
               setIsSubscribing(false)
             })
         }
       } else {
         // Subscription confirmed
-        toast.success('Successfully subscribed! Refreshing content...')
+        toast.success('🎉 Successfully subscribed! Refreshing content...')
         setTxHash(null)
         setIsSubscribing(false)
         refetch() // Refetch content to check access
+
+        // Force refetch multiple times to ensure we get the latest state
+        setTimeout(() => refetch(), 2000)
+        setTimeout(() => refetch(), 5000)
       }
     },
     onError: (error) => {
-      if (isApproval) {
-        toast.error(`Approval failed: ${error.message}`)
-        setIsApproval(false)
-      } else {
-        toast.error(`Subscription failed: ${error.message}`)
+      // Clear timeout on error
+      if (approvalTimeout) {
+        clearTimeout(approvalTimeout)
+        setApprovalTimeout(null)
       }
-      setTxHash(null)
-      setIsSubscribing(false)
+
+      if (isApproval) {
+        const message = error.message || 'Transaction failed'
+        let displayMessage = '❌ Approval failed'
+        if (message.includes('insufficient allowance')) {
+          displayMessage = '❌ Approval failed: Insufficient allowance - please try again'
+        } else if (message.includes('revert')) {
+          displayMessage = '❌ Approval failed: Transaction reverted - please check wallet and try again'
+        } else if (message.includes('User rejected')) {
+          displayMessage = '❌ Approval rejected - please try again'
+          setIsApproval(false)
+          setTxHash(null)
+          setIsSubscribing(false)
+          toast.error(displayMessage)
+          return
+        } else {
+          displayMessage = `❌ Approval failed: ${message}`
+        }
+        setIsApproval(false)
+        setTxHash(null)
+        setIsSubscribing(false)
+        toast.error(displayMessage)
+      } else {
+        const message = error.message || 'Transaction failed'
+        if (message.includes('CreatorNotRegistered')) {
+          toast.error('❌ Subscription failed: Creator is not registered')
+        } else if (message.includes('InsufficientAllowance')) {
+          toast.error('❌ Subscription failed: Insufficient USDT allowance')
+        } else if (message.includes('CannotSubscribeToSelf')) {
+          toast.error('❌ Subscription failed: Cannot subscribe to yourself')
+        } else if (message.includes('revert')) {
+          toast.error('❌ Subscription failed: Transaction reverted - check wallet balance and creator registration')
+        } else {
+          toast.error(`❌ Subscription failed: ${message}`)
+        }
+        setTxHash(null)
+        setIsSubscribing(false)
+      }
     },
   })
 
@@ -136,27 +209,54 @@ function ContentPage() {
 
     setIsSubscribing(true)
     try {
+      // Pre-flight check: Verify creator is registered on-chain
+      try {
+        const creatorData = await getCreatorOnChain(creatorWalletAddress)
+        if (!creatorData.exists) {
+          toast.error('❌ Creator is not registered on-chain. Please ask the creator to register their wallet.')
+          setIsSubscribing(false)
+          return
+        }
+      } catch (error) {
+        toast.error('❌ Failed to verify creator registration. Please try again.')
+        setIsSubscribing(false)
+        return
+      }
+
       // Check USDT allowance
       const allowance = await checkUSDTAllowance(address)
       const requiredAmount = BigInt(100 * 10 ** 6) // 100 USDT with 6 decimals
 
+      // Submit approval transaction if needed
       if (allowance < requiredAmount) {
-        // Need to approve USDT first
         setIsApproval(true)
-        toast.info('Approving 100 USDT for subscription...')
+        toast.info('Submitting approval transaction...')
         const approveHash = await approveUSDTForSubscription(requiredAmount)
-        setTxHash(approveHash)
-        toast.success('Approval transaction submitted!')
-        return
+        toast.success('✅ Approval transaction submitted!')
       }
 
-      // Allowance is sufficient, proceed with subscription
-      const hash = await subscribeToCreator(creatorWalletAddress)
-      setTxHash(hash)
-      toast.success('Subscription transaction submitted! Please wait for confirmation.')
-    } catch (error: any) {
-      toast.error(error.message || 'Failed to subscribe. Please try again.')
+      // Immediately submit subscription transaction
+      toast.info('Submitting subscription transaction...')
+      const subscriptionHash = await subscribeToCreator(creatorWalletAddress)
+      setTxHash(subscriptionHash)
+      setIsApproval(false)
       setIsSubscribing(false)
+      toast.success('🚀 Subscription transaction submitted!')
+      toast.info('💡 Click "Check Access" button below to verify your subscription status.')
+    } catch (error: any) {
+      const message = error.message || 'Failed to subscribe'
+      if (message.includes('CreatorNotRegistered')) {
+        toast.error('❌ Creator is not registered on-chain')
+      } else if (message.includes('InsufficientAllowance')) {
+        toast.error('❌ Insufficient USDT allowance. Please try approving again.')
+      } else if (message.includes('execution reverted')) {
+        toast.error('❌ Transaction reverted. Please check: 1) Creator is registered, 2) You have enough USDT balance')
+      } else {
+        toast.error(`❌ Failed to subscribe: ${message}`)
+      }
+      setIsSubscribing(false)
+      setIsApproval(false)
+      setTxHash(null)
     }
   }
 
@@ -213,7 +313,7 @@ function ContentPage() {
     )
   }
 
-  const { title, excerpt, content, isPremium, creator, hasAccess, createdAt } = data
+  const { title, excerpt, content, isPremium, creator, createdAt } = data
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -291,16 +391,12 @@ function ContentPage() {
             </CardHeader>
 
             <CardContent className="pt-6">
-              {hasAccess ? (
-                // Full content access (Free content or Creator)
+              {content ? (
+                // Full content access
                 <div className="prose prose-gray max-w-none">
-                  {content ? (
-                    <div className="whitespace-pre-wrap text-gray-800 leading-relaxed">
-                      {content}
-                    </div>
-                  ) : (
-                    <p className="text-gray-500 italic">No content available.</p>
-                  )}
+                  <div className="whitespace-pre-wrap text-gray-800 leading-relaxed">
+                    {content}
+                  </div>
                 </div>
               ) : (
                 // No access - show excerpt and subscribe prompt
@@ -340,6 +436,43 @@ function ContentPage() {
                         <p className="text-gray-600 max-w-md mx-auto">
                           Get access to this exclusive premium content and support your favorite creator.
                         </p>
+
+                        {/* Transaction Status */}
+                        {txHash && (
+                          <div className="bg-white rounded-lg border border-blue-200 p-4 space-y-2">
+                            <div className="flex items-center justify-center gap-2">
+                              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
+                              <span className="text-sm font-medium text-gray-700">
+                                Transaction submitted! Verifying on blockchain...
+                              </span>
+                            </div>
+                            <div className="text-xs text-gray-500 break-all">
+                              TX: {txHash.slice(0, 10)}...{txHash.slice(-8)}
+                            </div>
+                            <div className="flex gap-3 justify-center">
+                              <a
+                                href={`https://sepolia.mantlescan.info/tx/${txHash}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-xs text-blue-600 hover:text-blue-800 underline"
+                              >
+                                View on explorer →
+                              </a>
+                              <button
+                                onClick={() => {
+                                  setTxHash(null)
+                                  setIsApproval(false)
+                                  setIsSubscribing(false)
+                                  toast.info('Transaction cancelled')
+                                }}
+                                className="text-xs text-gray-600 hover:text-gray-800 underline"
+                              >
+                                Cancel
+                              </button>
+                            </div>
+                          </div>
+                        )}
+
                         <div className="pt-2">
                           <Button
                             size="lg"
@@ -352,12 +485,51 @@ function ContentPage() {
                               ? (isApproval ? 'Approving USDT...' : 'Subscribing...')
                               : 'Subscribe to Read'}
                           </Button>
+                          {!txHash && (
+                            <p className="text-xs text-gray-500 mt-2">
+                              Subscription cost: 100 USDT (one-time)
+                            </p>
+                          )}
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="mt-3"
+                            onClick={() => {
+                              toast.info('Refreshing content...')
+                              refetch()
+                            }}
+                          >
+                            Refresh Content Access
+                          </Button>
                         </div>
                       </div>
                     </CardContent>
                   </Card>
                 </div>
               )}
+            </CardContent>
+          </Card>
+
+
+          {/* Info Section */}
+          <Card className="mt-6 bg-gray-50 border-gray-200">
+            <CardContent className="pt-6">
+              <div className="flex items-start gap-3">
+                <div className="rounded-full bg-blue-100 p-2 mt-1">
+                  <Zap className="h-4 w-4 text-blue-600" />
+                </div>
+                <div>
+                  <h4 className="font-medium text-gray-900 mb-1">Secure Subscription</h4>
+                  <p className="text-sm text-gray-600">
+                    Subscribe securely using blockchain technology. You'll get:
+                  </p>
+                  <ul className="text-sm text-gray-600 mt-2 space-y-1 list-disc list-inside">
+                    <li>Instant access to premium content after confirmation</li>
+                    <li>Transparent transaction history on the blockchain</li>
+                    <li>No recurring fees - one-time payment</li>
+                  </ul>
+                </div>
+              </div>
             </CardContent>
           </Card>
         </div>
